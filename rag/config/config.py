@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Dict, Any, Optional
 
 from .enums import (
@@ -24,6 +25,9 @@ class ChunkingConfig:
     overlap_tokens: int = 20
     params: Dict[str, Any] = field(default_factory=dict)
 
+    def __post_init__(self):
+        self.type = ChunkingType(self.type)
+
 
 @dataclass
 class EmbeddingConfig:
@@ -34,6 +38,9 @@ class EmbeddingConfig:
     dimension: int = 768
     params: Dict[str, Any] = field(default_factory=dict)
 
+    def __post_init__(self):
+        self.type = EmbeddingType(self.type)
+
 
 @dataclass
 class VectorStoreConfig:
@@ -41,6 +48,9 @@ class VectorStoreConfig:
     type: VectorStoreType
     dimension: int = 768
     params: Dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self):
+        self.type = VectorStoreType(self.type)
 
 
 @dataclass
@@ -53,6 +63,9 @@ class RetrievalConfig:
     sparse_weight: float = 0.3
     params: Dict[str, Any] = field(default_factory=dict)
 
+    def __post_init__(self):
+        self.type = RetrievalType(self.type)
+
 
 @dataclass
 class RerankerConfig:
@@ -60,6 +73,9 @@ class RerankerConfig:
     type: RerankerType
     model_name: Optional[str] = None
     params: Dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self):
+        self.type = RerankerType(self.type)
 
 
 @dataclass
@@ -72,6 +88,9 @@ class GenerationConfig:
     system_prompt: Optional[str] = None
     params: Dict[str, Any] = field(default_factory=dict)
 
+    def __post_init__(self):
+        self.type = GenerationType(self.type)
+
 
 @dataclass
 class EvaluationConfig:
@@ -81,6 +100,9 @@ class EvaluationConfig:
     max_tokens: int = 2000
     temperature: float = 0.0
     params: Dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self):
+        self.type = EvaluationType(self.type)
 
 
 @dataclass
@@ -101,16 +123,27 @@ class RAGConfig:
 
     reranker: Optional[RerankerConfig] = None
 
+    @staticmethod
+    def _section_to_dict(section) -> Dict[str, Any]:
+        """Serialize a config section, converting enum fields to their values."""
+        return {
+            key: (value.value if isinstance(value, Enum) else value)
+            for key, value in section.__dict__.items()
+        }
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert config to dictionary."""
         return {
-            'chunking': self.chunking.__dict__,
-            'embedding': self.embedding.__dict__,
-            'vector_store': self.vector_store.__dict__,
-            'retrieval': self.retrieval.__dict__,
-            'reranker': self.reranker.__dict__ if self.reranker else None,
-            'generation': self.generation.__dict__,
-            'evaluation': self.evaluation.__dict__
+            'chunking': self._section_to_dict(self.chunking),
+            'embedding': self._section_to_dict(self.embedding),
+            'vector_store': self._section_to_dict(self.vector_store),
+            'retrieval': self._section_to_dict(self.retrieval),
+            'reranker': (
+                self._section_to_dict(self.reranker)
+                if self.reranker else None
+            ),
+            'generation': self._section_to_dict(self.generation),
+            'evaluation': self._section_to_dict(self.evaluation)
         }
 
     @classmethod
