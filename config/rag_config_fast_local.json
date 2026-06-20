@@ -1,0 +1,42 @@
+{
+  "chunking": {
+    "type": "fixed_window",
+    "window_size": 256,
+    "overlap": 50,
+    "params": {}
+  },
+  "embedding": {
+    "type": "local",
+    "model_name": "sentence-transformers/all-MiniLM-L6-v2",
+    "dimension": 384,
+    "params": {}
+  },
+  "vector_store": {
+    "type": "faiss",
+    "dimension": 384,
+    "params": {}
+  },
+  "retrieval": {
+    "type": "dense",
+    "top_k": 5,
+    "initial_k": 10,
+    "dense_weight": 0.7,
+    "sparse_weight": 0.3,
+    "params": {}
+  },
+  "generation": {
+    "type": "groq",
+    "model": "llama-3.1-8b-instant",
+    "max_tokens": 512,
+    "temperature": 0.5,
+    "system_prompt": null,
+    "params": {}
+  },
+  "evaluation": {
+    "type": "trace",
+    "model": "llama-3.1-8b-instant",
+    "max_tokens": 2000,
+    "temperature": 0.0,
+    "params": {}
+  }
+}
