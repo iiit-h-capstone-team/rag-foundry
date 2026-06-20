@@ -8,6 +8,7 @@ from rag.config.config import (
     EmbeddingConfig,
     VectorStoreConfig,
     RetrievalConfig,
+    RerankerConfig,
     GenerationConfig,
     EvaluationConfig
 )
@@ -16,6 +17,7 @@ from rag.config.enums import (
     EmbeddingType,
     VectorStoreType,
     RetrievalType,
+    RerankerType,
     GenerationType,
     EvaluationType
 )
@@ -29,7 +31,7 @@ config_fast_local = RAGConfig(
         overlap=50
     ),
     embedding=EmbeddingConfig(
-        type=EmbeddingType.LOCAL,
+        type=EmbeddingType.SENTENCE_TRANSFORMER,
         model_name='sentence-transformers/all-MiniLM-L6-v2',
         dimension=384
     ),
@@ -63,7 +65,7 @@ config_high_quality = RAGConfig(
         overlap_sentences=1
     ),
     embedding=EmbeddingConfig(
-        type=EmbeddingType.BGE,
+        type=EmbeddingType.SENTENCE_TRANSFORMER,
         model_name='BAAI/bge-large-en-v1.5',
         dimension=1024
     ),
@@ -76,9 +78,13 @@ config_high_quality = RAGConfig(
         top_k=5,
         initial_k=20
     ),
+    reranker=RerankerConfig(
+        type=RerankerType.CROSS_ENCODER,
+        model_name='BAAI/bge-reranker-v2-m3'
+    ),
     generation=GenerationConfig(
         type=GenerationType.GROQ,
-        model='llama-3.1-70b-versatile',
+        model='llama-3.3-70b-versatile',
         max_tokens=1024,
         temperature=0.7
     ),
@@ -134,7 +140,7 @@ config_medical = RAGConfig(
         overlap_sentences=2
     ),
     embedding=EmbeddingConfig(
-        type=EmbeddingType.BGE,
+        type=EmbeddingType.SENTENCE_TRANSFORMER,
         model_name='pritamdeka/S-PubMedBert-MS-MARCO',
         dimension=768
     ),
@@ -147,9 +153,13 @@ config_medical = RAGConfig(
         top_k=10,
         initial_k=30
     ),
+    reranker=RerankerConfig(
+        type=RerankerType.CROSS_ENCODER,
+        model_name='BAAI/bge-reranker-v2-m3'
+    ),
     generation=GenerationConfig(
         type=GenerationType.GROQ,
-        model='llama-3.1-70b-versatile',
+        model='llama-3.3-70b-versatile',
         max_tokens=1024,
         temperature=0.2
     ),
@@ -168,7 +178,7 @@ config_cost_optimized = RAGConfig(
         overlap=100
     ),
     embedding=EmbeddingConfig(
-        type=EmbeddingType.LOCAL,
+        type=EmbeddingType.SENTENCE_TRANSFORMER,
         model_name='sentence-transformers/all-mpnet-base-v2',
         dimension=768
     ),

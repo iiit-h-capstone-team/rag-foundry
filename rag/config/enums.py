@@ -7,15 +7,18 @@ class ChunkingType(str, Enum):
 
 
 class EmbeddingType(str, Enum):
-    BGE = "bge"
+    SENTENCE_TRANSFORMER = "sentence_transformer"
     OPENAI = "openai"
-    LOCAL = "local"
 
 
 class RetrievalType(str, Enum):
     DENSE_RERANK = "dense_rerank"
     DENSE = "dense"
     HYBRID = "hybrid"
+
+
+class RerankerType(str, Enum):
+    CROSS_ENCODER = "cross_encoder"
 
 
 class VectorStoreType(str, Enum):

@@ -38,12 +38,17 @@ class DenseRerankRetrievalStrategy(RetrievalStrategy):
                     "score": float(distance)
                 })
 
-        rerank_pairs = [
-            [query, self.vector_store.chunks[c["index"]].text]
+        candidate_texts = [
+            self.vector_store.chunks[c["index"]].text
             for c in candidates
         ]
 
-        rerank_scores = self.reranker.predict(rerank_pairs)
+        if hasattr(self.reranker, "rerank"):
+            rerank_scores = self.reranker.rerank(query, candidate_texts)
+        else:
+            rerank_scores = self.reranker.predict(
+                [[query, text] for text in candidate_texts]
+            )
 
         for candidate, score in zip(candidates, rerank_scores):
             candidate["rerank_score"] = float(score)
