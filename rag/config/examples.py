@@ -78,7 +78,7 @@ config_high_quality = RAGConfig(
     ),
     generation=GenerationConfig(
         type=GenerationType.GROQ,
-        model='llama-3.1-70b-versatile',
+        model='llama-3.3-70b-versatile',
         max_tokens=1024,
         temperature=0.7
     ),
@@ -149,7 +149,7 @@ config_medical = RAGConfig(
     ),
     generation=GenerationConfig(
         type=GenerationType.GROQ,
-        model='llama-3.1-70b-versatile',
+        model='llama-3.3-70b-versatile',
         max_tokens=1024,
         temperature=0.2
     ),
