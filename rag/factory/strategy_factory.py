@@ -2,6 +2,7 @@ from rag.config.enums import (
     ChunkingType,
     EmbeddingType,
     RetrievalType,
+    RerankerType,
     VectorStoreType,
     GenerationType,
     EvaluationType
@@ -11,13 +12,14 @@ from rag.chunking.sentence_chunking import SentenceChunkingStrategy
 from rag.chunking.fixed_window_chunking import FixedWindowChunkingStrategy
 from rag.chunking.token_chunking import TokenChunkingStrategy
 
-from rag.embedding.bge_embedding import BGEEmbeddingStrategy
+from rag.embedding.sentence_transformer_embedding import SentenceTransformerEmbeddingStrategy
 from rag.embedding.openai_embedding import OpenAIEmbeddingStrategy
-from rag.embedding.local_embedding import LocalEmbeddingStrategy
 
 from rag.retrieval.dense_rerank import DenseRerankRetrievalStrategy
 from rag.retrieval.dense_retrieval import DenseRetrievalStrategy
 from rag.retrieval.hybrid_retrieval import HybridRetrievalStrategy
+
+from rag.reranking.cross_encoder_reranker import CrossEncoderRerankerStrategy
 
 from rag.generation.groq_generation import GroqGenerationStrategy
 from rag.generation.openai_generation import OpenAIGenerationStrategy
@@ -56,19 +58,29 @@ class StrategyFactory:
         **kwargs
     ):
         strategies = {
-            EmbeddingType.BGE: lambda: BGEEmbeddingStrategy(
+            EmbeddingType.SENTENCE_TRANSFORMER: lambda: SentenceTransformerEmbeddingStrategy(
                 model=kwargs.get('model'),
                 model_name=kwargs.get('model_name')
             ),
             EmbeddingType.OPENAI: lambda: OpenAIEmbeddingStrategy(
                 client=kwargs.get('client'),
                 model=kwargs.get('model', 'text-embedding-3-small')
-            ),
-            EmbeddingType.LOCAL: lambda: LocalEmbeddingStrategy(
-                model_name=kwargs.get('model_name', 'sentence-transformers/all-MiniLM-L6-v2')
             )
         }
         return strategies[embedding_type]()
+
+    @staticmethod
+    def create_reranker(
+        reranker_type,
+        **kwargs
+    ):
+        strategies = {
+            RerankerType.CROSS_ENCODER: lambda: CrossEncoderRerankerStrategy(
+                model=kwargs.get('model'),
+                model_name=kwargs.get('model_name')
+            )
+        }
+        return strategies[reranker_type]()
 
     @staticmethod
     def create_vectorstore(

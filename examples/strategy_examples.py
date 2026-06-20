@@ -60,16 +60,17 @@ def example_embedding():
         "Another piece of text for embedding."
     ]
 
-    # Local embedding (doesn't require API keys)
+    # SentenceTransformer embedding (doesn't require API keys).
+    # Any SentenceTransformer model works here, e.g. a BGE model name.
     local_embedder = StrategyFactory.create_embedder(
-        EmbeddingType.LOCAL,
+        EmbeddingType.SENTENCE_TRANSFORMER,
         model_name='sentence-transformers/all-MiniLM-L6-v2'
     )
     embeddings = local_embedder.embed(texts)
-    print(f"Local Embeddings shape: {np.array(embeddings).shape}")
+    print(f"SentenceTransformer Embeddings shape: {np.array(embeddings).shape}")
 
-    # Note: BGE and OpenAI examples would require models/clients
-    print("BGE and OpenAI embeddings require model/client initialization\n")
+    # Note: OpenAI embeddings would require an API client
+    print("OpenAI embeddings require client initialization\n")
 
 
 def example_vectorstore_and_retrieval():

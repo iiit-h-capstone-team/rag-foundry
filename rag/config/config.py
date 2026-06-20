@@ -5,6 +5,7 @@ from .enums import (
     ChunkingType,
     EmbeddingType,
     RetrievalType,
+    RerankerType,
     VectorStoreType,
     GenerationType,
     EvaluationType
@@ -54,6 +55,14 @@ class RetrievalConfig:
 
 
 @dataclass
+class RerankerConfig:
+    """Configuration for reranking strategies."""
+    type: RerankerType
+    model_name: Optional[str] = None
+    params: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
 class GenerationConfig:
     """Configuration for generation strategies."""
     type: GenerationType
@@ -90,6 +99,8 @@ class RAGConfig:
 
     evaluation: EvaluationConfig
 
+    reranker: Optional[RerankerConfig] = None
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert config to dictionary."""
         return {
@@ -97,6 +108,7 @@ class RAGConfig:
             'embedding': self.embedding.__dict__,
             'vector_store': self.vector_store.__dict__,
             'retrieval': self.retrieval.__dict__,
+            'reranker': self.reranker.__dict__ if self.reranker else None,
             'generation': self.generation.__dict__,
             'evaluation': self.evaluation.__dict__
         }
@@ -109,6 +121,10 @@ class RAGConfig:
             embedding=EmbeddingConfig(**data.get('embedding', {})),
             vector_store=VectorStoreConfig(**data.get('vector_store', {})),
             retrieval=RetrievalConfig(**data.get('retrieval', {})),
+            reranker=(
+                RerankerConfig(**data['reranker'])
+                if data.get('reranker') else None
+            ),
             generation=GenerationConfig(**data.get('generation', {})),
             evaluation=EvaluationConfig(**data.get('evaluation', {}))
         )

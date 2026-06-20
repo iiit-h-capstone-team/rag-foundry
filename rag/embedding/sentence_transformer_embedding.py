@@ -1,10 +1,7 @@
-from rag.embedding.base import (
-    EmbeddingStrategy
-)
+from rag.embedding.base import EmbeddingStrategy
 
-class BGEEmbeddingStrategy(
-    EmbeddingStrategy
-):
+
+class SentenceTransformerEmbeddingStrategy(EmbeddingStrategy):
 
     def __init__(
         self,
@@ -18,18 +15,17 @@ class BGEEmbeddingStrategy(
         if model is None:
             if model_name is None:
                 raise ValueError(
-                    "BGEEmbeddingStrategy requires either a preloaded `model` "
-                    "object or a `model_name` to load."
+                    "SentenceTransformerEmbeddingStrategy requires either a "
+                    "preloaded `model` object or a `model_name` to load."
                 )
             from sentence_transformers import SentenceTransformer
             model = SentenceTransformer(model_name)
 
         self.model = model
 
-    def embed(
-        self,
-        texts
-    ):
+    def embed(self, texts):
+        if isinstance(texts, str):
+            texts = [texts]
 
         return self.model.encode(
             texts,

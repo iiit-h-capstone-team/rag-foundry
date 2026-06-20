@@ -4,6 +4,7 @@ Shows how to use RAGConfig with strategies and factory.
 """
 
 from rag.config.config import RAGConfig
+from rag.config.enums import RerankerType
 from rag.config.loader import ConfigLoader
 from rag.config.examples import get_config_by_name
 from rag.factory.strategy_factory import StrategyFactory
@@ -56,12 +57,28 @@ class RAGPipeline:
             dimension=self.config.embedding.dimension
         )
 
+        # Reranking (only used by rerank-based retrievers). Build from config;
+        # a prebuilt reranker/model passed via clients takes precedence.
+        self.reranker = None
+        prebuilt_reranker = self.clients.get('reranker')
+        if self.config.reranker is not None:
+            self.reranker = StrategyFactory.create_reranker(
+                self.config.reranker.type,
+                model=prebuilt_reranker,
+                model_name=self.config.reranker.model_name
+            )
+        elif prebuilt_reranker is not None:
+            self.reranker = StrategyFactory.create_reranker(
+                RerankerType.CROSS_ENCODER,
+                model=prebuilt_reranker
+            )
+
         # Retrieval
         self.retriever = StrategyFactory.create_retriever(
             self.config.retrieval.type,
             embedder=self.embedder,
             vector_store=self.vector_store,
-            reranker=self.clients.get('reranker'),
+            reranker=self.reranker,
             initial_k=self.config.retrieval.initial_k,
             dense_weight=self.config.retrieval.dense_weight,
             sparse_weight=self.config.retrieval.sparse_weight,
