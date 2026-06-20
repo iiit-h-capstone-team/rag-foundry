@@ -57,7 +57,8 @@ class StrategyFactory:
     ):
         strategies = {
             EmbeddingType.BGE: lambda: BGEEmbeddingStrategy(
-                model=kwargs.get('model')
+                model=kwargs.get('model'),
+                model_name=kwargs.get('model_name')
             ),
             EmbeddingType.OPENAI: lambda: OpenAIEmbeddingStrategy(
                 client=kwargs.get('client'),
