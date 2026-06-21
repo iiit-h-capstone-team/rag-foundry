@@ -17,10 +17,11 @@ class TRACeEvaluationStrategy(EvaluationStrategy):
 
     def split_into_sentences(self, text: str) -> list[str]:
         import nltk
-        try:
-            nltk.data.find('tokenizers/punkt')
-        except LookupError:
-            nltk.download('punkt', quiet=True)
+        for resource in ('punkt', 'punkt_tab'):
+            try:
+                nltk.data.find(f'tokenizers/{resource}')
+            except LookupError:
+                nltk.download(resource, quiet=True)
 
         from nltk.tokenize import sent_tokenize
         sentences = sent_tokenize(text.strip())

@@ -45,6 +45,9 @@ class FixedWindowChunkingStrategy(ChunkingStrategy):
             )
             chunks.append(chunk)
 
+            if end >= len(text):
+                break
+
             start = end - self.overlap
 
         return chunks
