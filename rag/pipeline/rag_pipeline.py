@@ -1,9 +1,37 @@
+import logging
+
 import numpy as np
 
 from rag.config.config import RAGConfig
+from rag.config.enums import Mode
 from rag.factory.strategy_factory import StrategyFactory
 from rag.models.document import Document
 from providers.provider_manager import ProviderManager
+
+logger = logging.getLogger(__name__)
+
+# Per-mode logging verbosity:
+#   dev  -> everything (DEBUG)
+#   prod -> warnings and errors only
+#   test -> errors only (quietest)
+_MODE_LOG_LEVELS = {
+    Mode.DEV: logging.DEBUG,
+    Mode.PROD: logging.WARNING,
+    Mode.TEST: logging.ERROR,
+}
+
+
+def _configure_logging(mode: Mode) -> None:
+    """Set the ``rag`` logger level (and a handler) for the given mode."""
+    rag_logger = logging.getLogger("rag")
+    rag_logger.setLevel(_MODE_LOG_LEVELS[mode])
+    if not rag_logger.handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(
+            logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
+        )
+        rag_logger.addHandler(handler)
+    rag_logger.propagate = False
 
 
 class RAGPipeline:
@@ -23,6 +51,9 @@ class RAGPipeline:
             config: RAGConfig instance
         """
         self.config = config
+
+        _configure_logging(self.config.mode)
+        logger.debug("Initializing RAG pipeline in %s mode", self.config.mode.value)
 
         # Create strategies from config
         self._initialize_providers()
@@ -105,35 +136,33 @@ class RAGPipeline:
 
     def build_index(self, documents: list[Document]):
         """Build vector index from documents."""
-        print(f"Processing {len(documents)} documents...")
+        logger.info("Processing %d documents...", len(documents))
 
         all_chunks = []
         for doc in documents:
             chunks = self.chunker.chunk(doc)
             all_chunks.extend(chunks)
 
-        print(f"Created {len(all_chunks)} chunks")
+        logger.info("Created %d chunks", len(all_chunks))
 
         # Generate embeddings
         texts = [chunk.text for chunk in all_chunks]
-        print(f"Generating embeddings for {len(texts)} chunks...")
+        logger.info("Generating embeddings for %d chunks...", len(texts))
         embeddings = self.embedder.embed(texts)
         embeddings = np.array(embeddings).astype('float32')
 
         # Add to vector store
         self.vector_store.add(embeddings, all_chunks)
-        print(f"Vector store ready with {len(all_chunks)} chunks")
+        logger.info("Vector store ready with %d chunks", len(all_chunks))
 
     def query(self, query: str) -> dict:
         """Run complete RAG query."""
-        print(f"\n{'='*60}")
-        print(f"Query: {query}")
-        print('='*60)
+        logger.info("Query: %s", query)
 
         # 1. Retrieve
-        print("\n[1] Retrieving documents...")
+        logger.debug("Retrieving documents...")
         retrieved = self.retriever.retrieve(query)
-        print(f"Retrieved {len(retrieved)} documents")
+        logger.debug("Retrieved %d documents", len(retrieved))
 
         # Format for generation
         retrieved_docs = [
@@ -145,7 +174,7 @@ class RAGPipeline:
         ]
 
         # 2. Generate
-        print("\n[2] Generating response...")
+        logger.debug("Generating response...")
         context = "\n\n".join([
             f"[Document {i+1}]\n{doc['text']}"
             for i, doc in enumerate(retrieved_docs)
@@ -155,16 +184,16 @@ class RAGPipeline:
             query=query,
             context=context,
         )
-        print(f"Response generated ({len(response)} chars)")
+        logger.debug("Response generated (%d chars)", len(response))
 
         # 3. Evaluate
-        print("\n[3] Evaluating response...")
+        logger.debug("Evaluating response...")
         scores = self.evaluator.evaluate(
             query=query,
             retrieved_docs=retrieved_docs,
             response=response,
         )
-        print(f"Evaluation complete")
+        logger.debug("Evaluation complete")
 
         return {
             'query': query,

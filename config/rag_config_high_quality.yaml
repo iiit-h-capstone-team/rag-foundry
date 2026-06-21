@@ -1,3 +1,5 @@
+mode: dev
+
 providers:
   groq:
     type: groq
