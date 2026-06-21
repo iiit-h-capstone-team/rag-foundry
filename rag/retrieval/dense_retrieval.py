@@ -6,10 +6,12 @@ class DenseRetrievalStrategy(RetrievalStrategy):
     def __init__(
         self,
         embedder,
-        vector_store
+        vector_store,
+        config
     ):
         self.embedder = embedder
         self.vector_store = vector_store
+        self.top_k = config.top_k
 
     def retrieve(
         self,
@@ -23,7 +25,7 @@ class DenseRetrievalStrategy(RetrievalStrategy):
 
         distances, indices = self.vector_store.search(
             query_embedding.reshape(1, -1),
-            top_k
+            self.top_k
         )
 
         results = []

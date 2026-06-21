@@ -3,6 +3,7 @@ Complete RAG pipeline using configuration system.
 Shows how to use RAGConfig with strategies and factory.
 """
 
+from providers.manager import ProviderManager
 from rag.config.config import RAGConfig
 from rag.config.enums import RerankerType
 from rag.config.loader import ConfigLoader
@@ -16,19 +17,34 @@ import numpy as np
 class RAGPipeline:
     """Complete RAG pipeline using configuration."""
 
-    def __init__(self, config: RAGConfig, clients: dict):
+    def __init__(self, config: RAGConfig):
         """
         Initialize RAG pipeline from configuration.
 
         Args:
             config: RAGConfig instance
-            clients: Dict with 'groq' and/or 'openai' clients
         """
         self.config = config
-        self.clients = clients
 
         # Create strategies from config
+        self._initialize_providers()
         self._initialize_strategies()
+
+    def _initialize_providers(self):
+        """
+        Create all providers declared in config.
+        Reuses existing instances through ProviderManager.
+        """
+
+        for provider_name, provider_config in (
+            self.config.providers.items()
+        ):
+
+            ProviderManager.register(
+                provider_name=provider_name,
+                provider_type=provider_config.type,
+                config=provider_config
+            )
 
     def _initialize_strategies(self):
         """Initialize all strategies from config."""
@@ -48,7 +64,6 @@ class RAGPipeline:
         self.embedder = StrategyFactory.create_embedder(
             self.config.embedding.type,
             model_name=self.config.embedding.model_name,
-            client=self.clients.get('openai') if self.config.embedding.type.value == 'openai' else None
         )
 
         # Vector Store
@@ -60,18 +75,14 @@ class RAGPipeline:
         # Reranking (only used by rerank-based retrievers). Build from config;
         # a prebuilt reranker/model passed via clients takes precedence.
         self.reranker = None
-        prebuilt_reranker = self.clients.get('reranker')
         if self.config.reranker is not None:
-            self.reranker = StrategyFactory.create_reranker(
-                self.config.reranker.type,
-                model=prebuilt_reranker,
-                model_name=self.config.reranker.model_name
+            self.reranker = (
+                StrategyFactory.create_reranker(
+                    self.config.reranker.type,
+                    model_name=self.config.reranker.model_name
+                )
             )
-        elif prebuilt_reranker is not None:
-            self.reranker = StrategyFactory.create_reranker(
-                RerankerType.CROSS_ENCODER,
-                model=prebuilt_reranker
-            )
+
 
         # Retrieval
         self.retriever = StrategyFactory.create_retriever(
@@ -82,23 +93,35 @@ class RAGPipeline:
             initial_k=self.config.retrieval.initial_k,
             dense_weight=self.config.retrieval.dense_weight,
             sparse_weight=self.config.retrieval.sparse_weight,
-            bm25_store=self.clients.get('bm25_store')
         )
 
         # Generation
-        gen_client = self.clients.get('groq') if self.config.generation.type.value == 'groq' else self.clients.get('openai')
+        
+        generation_provider = (
+            ProviderManager.get_provider(
+                self.config.generation.provider
+            )
+        )
+
         self.generator = StrategyFactory.create_generator(
-            self.config.generation.type,
-            client=gen_client,
-            model=self.config.generation.model
+            self.config.generation.strategy,
+            provider=generation_provider,
+            model=self.config.generation.model,
+            system_prompt=self.config.generation.system_prompt,
         )
 
         # Evaluation
-        eval_client = self.clients.get('groq') or self.clients.get('openai')
+        evaluation_provider = (
+            ProviderManager.get_provider(
+                self.config.evaluation.provider
+            )
+        )
         self.evaluator = StrategyFactory.create_evaluator(
             self.config.evaluation.type,
-            judge_client=eval_client,
-            model=self.config.evaluation.model
+            provider=evaluation_provider,
+            model=self.config.evaluation.model,
+            temperature=self.config.evaluation.temperature,
+            max_tokens=self.config.evaluation.max_tokens,
         )
 
     def build_index(self, documents: list[Document]):
@@ -226,17 +249,20 @@ if __name__ == "__main__":
     print(f"  Chunking:   {config.chunking.type.value}")
     print(f"  Embedding:  {config.embedding.type.value}")
     print(f"  Retrieval:  {config.retrieval.type.value}")
-    print(f"  Generation: {config.generation.type.value} ({config.generation.model})")
-    print(f"  Evaluation: {config.evaluation.type.value} ({config.evaluation.model})")
+    print(
+        f"  Generation: "
+        f"{config.generation.provider} "
+        f"({config.generation.model})"
+    )
+    print(
+        f"  Evaluation: "
+        f"{config.evaluation.type.value} "
+        f"({config.evaluation.model})"
+    )
 
-    # Initialize pipeline (requires actual clients)
-    # clients = {
-    #     'groq': groq_client,
-    #     'openai': openai_client,
-    #     'reranker': rerank_model
-    # }
+    # Providers are initialized automatically from config
     #
-    # pipeline = RAGPipeline(config, clients)
+    # pipeline = RAGPipeline(config)
     #
     # # Build index
     # documents = [

@@ -1,3 +1,12 @@
+from rag.config.config import (
+    ChunkingConfig, 
+    EmbeddingConfig, 
+    RetrievalConfig, 
+    GenerationConfig, 
+    EvaluationConfig, 
+    RerankerConfig, 
+    VectorStoreConfig
+)
 from rag.config.enums import (
     ChunkingType,
     EmbeddingType,
@@ -5,7 +14,8 @@ from rag.config.enums import (
     RerankerType,
     VectorStoreType,
     GenerationType,
-    EvaluationType
+    EvaluationType,
+    ProviderType
 )
 
 from rag.chunking.sentence_chunking import SentenceChunkingStrategy
@@ -21,8 +31,7 @@ from rag.retrieval.hybrid_retrieval import HybridRetrievalStrategy
 
 from rag.reranking.cross_encoder_reranker import CrossEncoderRerankerStrategy
 
-from rag.generation.groq_generation import GroqGenerationStrategy
-from rag.generation.openai_generation import OpenAIGenerationStrategy
+from rag.generation.default_generation import DefaultGenerationStrategy
 
 from rag.evaluation.trace_evaluation import TRACeEvaluationStrategy
 
@@ -33,119 +42,116 @@ class StrategyFactory:
 
     @staticmethod
     def create_chunker(
-        chunking_type,
+        config: ChunkingConfig,
         **kwargs
     ):
         strategies = {
             ChunkingType.SENTENCE: lambda: SentenceChunkingStrategy(
-                max_words=kwargs.get('max_words', 100),
-                overlap_sentences=kwargs.get('overlap_sentences', 1)
+                config=config
             ),
             ChunkingType.FIXED_WINDOW: lambda: FixedWindowChunkingStrategy(
-                window_size=kwargs.get('window_size', 256),
-                overlap=kwargs.get('overlap', 50)
+                config=config
             ),
             ChunkingType.TOKEN: lambda: TokenChunkingStrategy(
-                max_tokens=kwargs.get('max_tokens', 200),
-                overlap_tokens=kwargs.get('overlap_tokens', 20)
+                config=config
             )
         }
-        return strategies[chunking_type]()
+        return strategies[config.type]()
 
     @staticmethod
     def create_embedder(
-        embedding_type,
+        config: EmbeddingConfig,
         **kwargs
     ):
         strategies = {
             EmbeddingType.SENTENCE_TRANSFORMER: lambda: SentenceTransformerEmbeddingStrategy(
-                model=kwargs.get('model'),
-                model_name=kwargs.get('model_name')
+                config=config
             ),
             EmbeddingType.OPENAI: lambda: OpenAIEmbeddingStrategy(
-                client=kwargs.get('client'),
-                model=kwargs.get('model', 'text-embedding-3-small')
+                config=config
             )
         }
-        return strategies[embedding_type]()
+        return strategies[config.type]()
 
     @staticmethod
     def create_reranker(
-        reranker_type,
+        config: RerankerConfig,
         **kwargs
     ):
         strategies = {
             RerankerType.CROSS_ENCODER: lambda: CrossEncoderRerankerStrategy(
-                model=kwargs.get('model'),
-                model_name=kwargs.get('model_name')
+                config=config
             )
         }
-        return strategies[reranker_type]()
+        return strategies[config.type]()
 
     @staticmethod
     def create_vectorstore(
-        vectorstore_type,
+        config: VectorStoreConfig,
         **kwargs
     ):
         strategies = {
             VectorStoreType.FAISS: lambda: FaissVectorStore(
-                dimension=kwargs.get('dimension')
+                config=config
             )
         }
-        return strategies[vectorstore_type]()
+        return strategies[config.type]()
 
     @staticmethod
     def create_retriever(
-        retriever_type,
-        **kwargs
+    config: RetrievalConfig,
+        *,
+        embedder,
+        vector_store,
+        reranker=None,
+        bm25_store=None,
     ):
         strategies = {
             RetrievalType.DENSE_RERANK: lambda: DenseRerankRetrievalStrategy(
-                embedder=kwargs.get('embedder'),
-                vector_store=kwargs.get('vector_store'),
-                reranker=kwargs.get('reranker'),
-                initial_k=kwargs.get('initial_k', 20)
+                config=config,
+                embedder=embedder,
+                vector_store=vector_store,
+                reranker=reranker,
             ),
             RetrievalType.DENSE: lambda: DenseRetrievalStrategy(
-                embedder=kwargs.get('embedder'),
-                vector_store=kwargs.get('vector_store')
+                config=config,
+                embedder=embedder,
+                vector_store=vector_store,
+                reranker=reranker,
             ),
             RetrievalType.HYBRID: lambda: HybridRetrievalStrategy(
-                embedder=kwargs.get('embedder'),
-                vector_store=kwargs.get('vector_store'),
-                bm25_store=kwargs.get('bm25_store'),
-                dense_weight=kwargs.get('dense_weight', 0.7),
-                sparse_weight=kwargs.get('sparse_weight', 0.3)
+                config=config,
+                embedder=embedder,
+                vector_store=vector_store,
+                bm25_store=bm25_store,
             )
         }
-        return strategies[retriever_type]()
+        return strategies[config.type]()
 
     @staticmethod
     def create_generator(
-        generation_type,
+        provider: ProviderType,
+        config: GenerationConfig,
         **kwargs
     ):
         strategies = {
-            GenerationType.GROQ: lambda: GroqGenerationStrategy(
-                client=kwargs.get('client'),
-                model=kwargs.get('model', 'llama-3.1-8b-instant')
+            GenerationType.DEFAULT: lambda: DefaultGenerationStrategy(
+                provider=provider,
+                config=config
             ),
-            GenerationType.OPENAI: lambda: OpenAIGenerationStrategy(
-                client=kwargs.get('client'),
-                model=kwargs.get('model', 'gpt-4')
-            )
         }
-        return strategies[generation_type]()
+        return strategies[config.type]()
 
     @staticmethod
     def create_evaluator(
-        evaluation_type,
+        provider: ProviderType,
+        config: EvaluationConfig,
         **kwargs
     ):
         strategies = {
             EvaluationType.TRACE: lambda: TRACeEvaluationStrategy(
-                judge_client=kwargs.get('judge_client'),
-                model=kwargs.get('model', 'llama-3.3-70b-versatile')
+                provider=provider,
+                config=config
             )
         }
-        return strategies[evaluation_type]()
+        return strategies[config.type]()

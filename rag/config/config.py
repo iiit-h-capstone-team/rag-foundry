@@ -9,8 +9,18 @@ from .enums import (
     RerankerType,
     VectorStoreType,
     GenerationType,
-    EvaluationType
+    EvaluationType,
+    ProviderType
 )
+
+@dataclass
+class ProviderConfig:
+    """
+    Configuration for LLM providers.
+    """
+
+    type: ProviderType
+    params: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -80,22 +90,30 @@ class RerankerConfig:
 
 @dataclass
 class GenerationConfig:
-    """Configuration for generation strategies."""
-    type: GenerationType
+    """
+    Configuration for generation strategies.
+    """
+
+    strategy: GenerationType
+    provider: str
     model: str
     max_tokens: int = 1024
     temperature: float = 0.7
     system_prompt: Optional[str] = None
     params: Dict[str, Any] = field(default_factory=dict)
-
     def __post_init__(self):
-        self.type = GenerationType(self.type)
+        self.strategy = GenerationType(
+            self.strategy
+        )
 
 
 @dataclass
 class EvaluationConfig:
-    """Configuration for evaluation strategies."""
+    """
+    Configuration for evaluation strategies.
+    """
     type: EvaluationType
+    provider: str
     model: str = "llama-3.3-70b-versatile"
     max_tokens: int = 2000
     temperature: float = 0.0
@@ -108,6 +126,8 @@ class EvaluationConfig:
 @dataclass
 class RAGConfig:
     """Complete RAG system configuration."""
+
+    providers: Dict[str, ProviderConfig]
 
     chunking: ChunkingConfig
 
@@ -134,6 +154,10 @@ class RAGConfig:
     def to_dict(self) -> Dict[str, Any]:
         """Convert config to dictionary."""
         return {
+            'providers': {
+                name: self._section_to_dict(provider)
+                for name, provider in self.providers.items()
+            },
             'chunking': self._section_to_dict(self.chunking),
             'embedding': self._section_to_dict(self.embedding),
             'vector_store': self._section_to_dict(self.vector_store),
@@ -150,6 +174,10 @@ class RAGConfig:
     def from_dict(cls, data: Dict[str, Any]) -> 'RAGConfig':
         """Create config from dictionary."""
         return cls(
+            providers={
+                name: ProviderConfig(**provider_data)
+                for name, provider_data in data.get('providers', {}).items()
+            },
             chunking=ChunkingConfig(**data.get('chunking', {})),
             embedding=EmbeddingConfig(**data.get('embedding', {})),
             vector_store=VectorStoreConfig(**data.get('vector_store', {})),

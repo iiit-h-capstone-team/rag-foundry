@@ -8,12 +8,12 @@ class DenseRerankRetrievalStrategy(RetrievalStrategy):
         embedder,
         vector_store,
         reranker,
-        initial_k: int = 20
+        config,
     ):
         self.embedder = embedder
         self.vector_store = vector_store
         self.reranker = reranker
-        self.initial_k = initial_k
+        self.initial_k = config.initial_k
 
     def retrieve(
         self,
