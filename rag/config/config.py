@@ -10,7 +10,8 @@ from .enums import (
     VectorStoreType,
     GenerationType,
     EvaluationType,
-    ProviderType
+    ProviderType,
+    Mode
 )
 
 
@@ -294,6 +295,11 @@ class RAGConfig:
 
     reranker: Optional[RerankerConfig] = None
 
+    mode: Mode = Mode.DEV
+
+    def __post_init__(self):
+        self.mode = Mode(self.mode)
+
     @staticmethod
     def _section_to_dict(section) -> Dict[str, Any]:
         """Serialize a config section, converting enums and nested configs."""
@@ -310,6 +316,7 @@ class RAGConfig:
     def to_dict(self) -> Dict[str, Any]:
         """Convert config to dictionary."""
         return {
+            'mode': self.mode.value,
             'providers': {
                 name: self._section_to_dict(provider)
                 for name, provider in self.providers.items()
@@ -330,6 +337,7 @@ class RAGConfig:
     def from_dict(cls, data: Dict[str, Any]) -> 'RAGConfig':
         """Create config from dictionary."""
         return cls(
+            mode=data.get('mode', Mode.DEV),
             providers={
                 name: ProviderConfig(**provider_data)
                 for name, provider_data in data.get('providers', {}).items()

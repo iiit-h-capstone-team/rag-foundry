@@ -1,6 +1,8 @@
 # Production-grade example demonstrating provider-specific credential
 # resolution: each provider declares its own `api_key_env`, so different
 # providers read different environment variables (no hardcoded names).
+mode: prod
+
 providers:
   openai:
     type: openai

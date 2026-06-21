@@ -1,5 +1,13 @@
 from enum import Enum
 
+
+class Mode(str, Enum):
+    """Runtime mode controlling pipeline logging verbosity."""
+    DEV = "dev"
+    PROD = "prod"
+    TEST = "test"
+
+
 class ProviderType(str, Enum):
     GROQ = "groq"
     OPENAI = "openai"
