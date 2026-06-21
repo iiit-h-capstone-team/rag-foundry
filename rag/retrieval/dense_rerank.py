@@ -1,4 +1,4 @@
-from rag.config.config import RetrievalConfig
+from rag.config.config import DenseRerankRetrievalConfig
 from rag.retrieval.base import RetrievalStrategy
 
 
@@ -6,7 +6,7 @@ class DenseRerankRetrievalStrategy(RetrievalStrategy):
 
     def __init__(
         self,
-        config: RetrievalConfig,
+        config: DenseRerankRetrievalConfig,
         embedder,
         vector_store,
         reranker,

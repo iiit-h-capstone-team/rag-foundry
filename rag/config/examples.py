@@ -1,8 +1,9 @@
 """
 Example RAG configurations for different use cases.
 
-Every configuration is self-contained: each strategy section owns its tunable
-settings, and providers declare their own credential environment variable via
+Every configuration is self-contained: each strategy section names the
+strategy and nests its own typed config object (e.g. ``SentenceChunkingConfig``),
+and providers declare their own credential environment variable via
 ``api_key_env`` (resolved at pipeline-build time).
 """
 
@@ -10,12 +11,24 @@ from rag.config.config import (
     RAGConfig,
     ProviderConfig,
     ChunkingConfig,
+    SentenceChunkingConfig,
+    FixedWindowChunkingConfig,
+    TokenChunkingConfig,
     EmbeddingConfig,
+    SentenceTransformerEmbeddingConfig,
+    OpenAIEmbeddingConfig,
     VectorStoreConfig,
+    FaissVectorStoreConfig,
     RetrievalConfig,
+    DenseRetrievalConfig,
+    DenseRerankRetrievalConfig,
+    HybridRetrievalConfig,
     RerankerConfig,
+    CrossEncoderRerankerConfig,
     GenerationConfig,
-    EvaluationConfig
+    DefaultGenerationConfig,
+    EvaluationConfig,
+    TRACeEvaluationConfig,
 )
 from rag.config.enums import (
     ProviderType,
@@ -45,34 +58,39 @@ config_fast_local = RAGConfig(
     providers=_groq_provider(),
     chunking=ChunkingConfig(
         type=ChunkingType.FIXED_WINDOW,
-        window_size=256,
-        overlap=50
+        config=FixedWindowChunkingConfig(
+            window_size=256,
+            overlap=50
+        )
     ),
     embedding=EmbeddingConfig(
         type=EmbeddingType.SENTENCE_TRANSFORMER,
-        model_name='sentence-transformers/all-MiniLM-L6-v2',
-        dimension=384
+        config=SentenceTransformerEmbeddingConfig(
+            model_name='sentence-transformers/all-MiniLM-L6-v2',
+            dimension=384
+        )
     ),
     vector_store=VectorStoreConfig(
         type=VectorStoreType.FAISS,
-        dimension=384
+        config=FaissVectorStoreConfig(dimension=384)
     ),
     retrieval=RetrievalConfig(
         type=RetrievalType.DENSE,
-        top_k=5,
-        initial_k=10
+        config=DenseRetrievalConfig(top_k=5)
     ),
     generation=GenerationConfig(
         strategy=GenerationType.DEFAULT,
         provider='groq',
-        model='llama-3.1-8b-instant',
-        max_tokens=512,
-        temperature=0.5
+        config=DefaultGenerationConfig(
+            model='llama-3.1-8b-instant',
+            max_tokens=512,
+            temperature=0.5
+        )
     ),
     evaluation=EvaluationConfig(
         type=EvaluationType.TRACE,
         provider='groq',
-        model='llama-3.1-8b-instant'
+        config=TRACeEvaluationConfig(model='llama-3.1-8b-instant')
     )
 )
 
@@ -82,38 +100,48 @@ config_high_quality = RAGConfig(
     providers=_groq_provider(),
     chunking=ChunkingConfig(
         type=ChunkingType.SENTENCE,
-        max_words=100,
-        overlap_sentences=1
+        config=SentenceChunkingConfig(
+            max_words=100,
+            overlap_sentences=1
+        )
     ),
     embedding=EmbeddingConfig(
         type=EmbeddingType.SENTENCE_TRANSFORMER,
-        model_name='BAAI/bge-large-en-v1.5',
-        dimension=1024
+        config=SentenceTransformerEmbeddingConfig(
+            model_name='BAAI/bge-large-en-v1.5',
+            dimension=1024
+        )
     ),
     vector_store=VectorStoreConfig(
         type=VectorStoreType.FAISS,
-        dimension=1024
+        config=FaissVectorStoreConfig(dimension=1024)
     ),
     retrieval=RetrievalConfig(
         type=RetrievalType.DENSE_RERANK,
-        top_k=5,
-        initial_k=20
+        config=DenseRerankRetrievalConfig(
+            top_k=5,
+            initial_k=20
+        )
     ),
     reranker=RerankerConfig(
         type=RerankerType.CROSS_ENCODER,
-        model_name='BAAI/bge-reranker-v2-m3'
+        config=CrossEncoderRerankerConfig(
+            model_name='BAAI/bge-reranker-v2-m3'
+        )
     ),
     generation=GenerationConfig(
         strategy=GenerationType.DEFAULT,
         provider='groq',
-        model='llama-3.3-70b-versatile',
-        max_tokens=1024,
-        temperature=0.7
+        config=DefaultGenerationConfig(
+            model='llama-3.3-70b-versatile',
+            max_tokens=1024,
+            temperature=0.7
+        )
     ),
     evaluation=EvaluationConfig(
         type=EvaluationType.TRACE,
         provider='groq',
-        model='llama-3.3-70b-versatile'
+        config=TRACeEvaluationConfig(model='llama-3.3-70b-versatile')
     )
 )
 
@@ -134,37 +162,45 @@ config_openai_production = RAGConfig(
     },
     chunking=ChunkingConfig(
         type=ChunkingType.TOKEN,
-        max_tokens=200,
-        overlap_tokens=20
+        config=TokenChunkingConfig(
+            max_tokens=200,
+            overlap_tokens=20
+        )
     ),
     embedding=EmbeddingConfig(
         type=EmbeddingType.OPENAI,
-        model='text-embedding-3-large',
-        dimension=3072
+        config=OpenAIEmbeddingConfig(
+            model='text-embedding-3-large',
+            dimension=3072
+        )
     ),
     vector_store=VectorStoreConfig(
         type=VectorStoreType.FAISS,
-        dimension=3072
+        config=FaissVectorStoreConfig(dimension=3072)
     ),
     retrieval=RetrievalConfig(
         type=RetrievalType.HYBRID,
-        top_k=5,
-        initial_k=25,
-        dense_weight=0.7,
-        sparse_weight=0.3
+        config=HybridRetrievalConfig(
+            top_k=5,
+            initial_k=25,
+            dense_weight=0.7,
+            sparse_weight=0.3
+        )
     ),
     generation=GenerationConfig(
         strategy=GenerationType.DEFAULT,
         provider='openai',
-        model='gpt-4',
-        max_tokens=2048,
-        temperature=0.3,
-        system_prompt='You are a helpful assistant that answers questions based on provided context.'
+        config=DefaultGenerationConfig(
+            model='gpt-4',
+            max_tokens=2048,
+            temperature=0.3,
+            system_prompt='You are a helpful assistant that answers questions based on provided context.'
+        )
     ),
     evaluation=EvaluationConfig(
         type=EvaluationType.TRACE,
         provider='groq',
-        model='llama-3.3-70b-versatile'
+        config=TRACeEvaluationConfig(model='llama-3.3-70b-versatile')
     )
 )
 
@@ -174,38 +210,48 @@ config_medical = RAGConfig(
     providers=_groq_provider(),
     chunking=ChunkingConfig(
         type=ChunkingType.SENTENCE,
-        max_words=150,
-        overlap_sentences=2
+        config=SentenceChunkingConfig(
+            max_words=150,
+            overlap_sentences=2
+        )
     ),
     embedding=EmbeddingConfig(
         type=EmbeddingType.SENTENCE_TRANSFORMER,
-        model_name='pritamdeka/S-PubMedBert-MS-MARCO',
-        dimension=768
+        config=SentenceTransformerEmbeddingConfig(
+            model_name='pritamdeka/S-PubMedBert-MS-MARCO',
+            dimension=768
+        )
     ),
     vector_store=VectorStoreConfig(
         type=VectorStoreType.FAISS,
-        dimension=768
+        config=FaissVectorStoreConfig(dimension=768)
     ),
     retrieval=RetrievalConfig(
         type=RetrievalType.DENSE_RERANK,
-        top_k=10,
-        initial_k=30
+        config=DenseRerankRetrievalConfig(
+            top_k=10,
+            initial_k=30
+        )
     ),
     reranker=RerankerConfig(
         type=RerankerType.CROSS_ENCODER,
-        model_name='BAAI/bge-reranker-v2-m3'
+        config=CrossEncoderRerankerConfig(
+            model_name='BAAI/bge-reranker-v2-m3'
+        )
     ),
     generation=GenerationConfig(
         strategy=GenerationType.DEFAULT,
         provider='groq',
-        model='llama-3.3-70b-versatile',
-        max_tokens=1024,
-        temperature=0.2
+        config=DefaultGenerationConfig(
+            model='llama-3.3-70b-versatile',
+            max_tokens=1024,
+            temperature=0.2
+        )
     ),
     evaluation=EvaluationConfig(
         type=EvaluationType.TRACE,
         provider='groq',
-        model='llama-3.3-70b-versatile'
+        config=TRACeEvaluationConfig(model='llama-3.3-70b-versatile')
     )
 )
 
@@ -215,34 +261,39 @@ config_cost_optimized = RAGConfig(
     providers=_groq_provider(),
     chunking=ChunkingConfig(
         type=ChunkingType.FIXED_WINDOW,
-        window_size=512,
-        overlap=100
+        config=FixedWindowChunkingConfig(
+            window_size=512,
+            overlap=100
+        )
     ),
     embedding=EmbeddingConfig(
         type=EmbeddingType.SENTENCE_TRANSFORMER,
-        model_name='sentence-transformers/all-mpnet-base-v2',
-        dimension=768
+        config=SentenceTransformerEmbeddingConfig(
+            model_name='sentence-transformers/all-mpnet-base-v2',
+            dimension=768
+        )
     ),
     vector_store=VectorStoreConfig(
         type=VectorStoreType.FAISS,
-        dimension=768
+        config=FaissVectorStoreConfig(dimension=768)
     ),
     retrieval=RetrievalConfig(
         type=RetrievalType.DENSE,
-        top_k=3,
-        initial_k=10
+        config=DenseRetrievalConfig(top_k=3)
     ),
     generation=GenerationConfig(
         strategy=GenerationType.DEFAULT,
         provider='groq',
-        model='llama-3.1-8b-instant',
-        max_tokens=256,
-        temperature=0.5
+        config=DefaultGenerationConfig(
+            model='llama-3.1-8b-instant',
+            max_tokens=256,
+            temperature=0.5
+        )
     ),
     evaluation=EvaluationConfig(
         type=EvaluationType.TRACE,
         provider='groq',
-        model='llama-3.1-8b-instant'
+        config=TRACeEvaluationConfig(model='llama-3.1-8b-instant')
     )
 )
 

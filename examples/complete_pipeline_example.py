@@ -33,12 +33,12 @@ if __name__ == "__main__":
     print(
         f"  Generation: "
         f"{config.generation.provider} "
-        f"({config.generation.model})"
+        f"({config.generation.config.model})"
     )
     print(
         f"  Evaluation: "
         f"{config.evaluation.type.value} "
-        f"({config.evaluation.model})"
+        f"({config.evaluation.config.model})"
     )
 
     # Providers and strategies are initialized automatically from config:

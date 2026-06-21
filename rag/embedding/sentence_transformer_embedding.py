@@ -1,4 +1,4 @@
-from rag.config.config import EmbeddingConfig
+from rag.config.config import SentenceTransformerEmbeddingConfig
 from rag.embedding.base import EmbeddingStrategy
 
 
@@ -6,7 +6,7 @@ class SentenceTransformerEmbeddingStrategy(EmbeddingStrategy):
 
     def __init__(
         self,
-        config: EmbeddingConfig
+        config: SentenceTransformerEmbeddingConfig
     ):
         self.config = config
 

@@ -1,4 +1,4 @@
-from rag.config.config import EmbeddingConfig
+from rag.config.config import OpenAIEmbeddingConfig
 from rag.embedding.base import EmbeddingStrategy
 
 
@@ -8,7 +8,7 @@ class OpenAIEmbeddingStrategy(EmbeddingStrategy):
 
     def __init__(
         self,
-        config: EmbeddingConfig
+        config: OpenAIEmbeddingConfig
     ):
         self.config = config
         self._client = None

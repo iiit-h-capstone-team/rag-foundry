@@ -1,4 +1,4 @@
-from rag.config.config import RerankerConfig
+from rag.config.config import CrossEncoderRerankerConfig
 from rag.reranking.base import RerankerStrategy
 
 
@@ -6,7 +6,7 @@ class CrossEncoderRerankerStrategy(RerankerStrategy):
 
     def __init__(
         self,
-        config: RerankerConfig
+        config: CrossEncoderRerankerConfig
     ):
         self.config = config
 

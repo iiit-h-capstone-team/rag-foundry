@@ -6,8 +6,12 @@ This demonstrates how to use each strategy type.
 from rag.factory.strategy_factory import StrategyFactory
 from rag.config.config import (
     ChunkingConfig,
+    FixedWindowChunkingConfig,
+    TokenChunkingConfig,
     EmbeddingConfig,
+    SentenceTransformerEmbeddingConfig,
     VectorStoreConfig,
+    FaissVectorStoreConfig,
 )
 from rag.config.enums import (
     ChunkingType,
@@ -39,8 +43,10 @@ def example_chunking():
     fixed_chunker = StrategyFactory.create_chunker(
         ChunkingConfig(
             type=ChunkingType.FIXED_WINDOW,
-            window_size=50,
-            overlap=10
+            config=FixedWindowChunkingConfig(
+                window_size=50,
+                overlap=10
+            )
         )
     )
     chunks = fixed_chunker.chunk(doc)
@@ -50,8 +56,10 @@ def example_chunking():
     token_chunker = StrategyFactory.create_chunker(
         ChunkingConfig(
             type=ChunkingType.TOKEN,
-            max_tokens=10,
-            overlap_tokens=2
+            config=TokenChunkingConfig(
+                max_tokens=10,
+                overlap_tokens=2
+            )
         )
     )
     chunks = token_chunker.chunk(doc)
@@ -72,7 +80,9 @@ def example_embedding():
     local_embedder = StrategyFactory.create_embedder(
         EmbeddingConfig(
             type=EmbeddingType.SENTENCE_TRANSFORMER,
-            model_name='sentence-transformers/all-MiniLM-L6-v2'
+            config=SentenceTransformerEmbeddingConfig(
+                model_name='sentence-transformers/all-MiniLM-L6-v2'
+            )
         )
     )
     embeddings = local_embedder.embed(texts)
@@ -90,7 +100,7 @@ def example_vectorstore_and_retrieval():
     vector_store = StrategyFactory.create_vectorstore(
         VectorStoreConfig(
             type=VectorStoreType.FAISS,
-            dimension=384  # MiniLM dimension
+            config=FaissVectorStoreConfig(dimension=384)  # MiniLM dimension
         )
     )
     print("FAISS Vector Store created")
@@ -115,13 +125,13 @@ def example_generation():
     # Here we show the factory pattern usage
     try:
         # This would require a registered provider:
-        # from rag.config.config import GenerationConfig
+        # from rag.config.config import GenerationConfig, DefaultGenerationConfig
         # from rag.config.enums import GenerationType
         # generator = StrategyFactory.create_generator(
         #     GenerationConfig(
         #         strategy=GenerationType.DEFAULT,
         #         provider='groq',
-        #         model='llama-3.1-8b-instant',
+        #         config=DefaultGenerationConfig(model='llama-3.1-8b-instant'),
         #     ),
         #     provider=ProviderManager.get_provider('groq'),
         # )
@@ -138,13 +148,13 @@ def example_evaluation():
     # Note: TRACe evaluation requires a judge client
     try:
         # This would require a registered provider:
-        # from rag.config.config import EvaluationConfig
+        # from rag.config.config import EvaluationConfig, TRACeEvaluationConfig
         # from rag.config.enums import EvaluationType
         # evaluator = StrategyFactory.create_evaluator(
         #     EvaluationConfig(
         #         type=EvaluationType.TRACE,
         #         provider='groq',
-        #         model='llama-3.3-70b-versatile',
+        #         config=TRACeEvaluationConfig(model='llama-3.3-70b-versatile'),
         #     ),
         #     provider=ProviderManager.get_provider('groq'),
         # )

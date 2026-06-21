@@ -160,11 +160,14 @@ Integration Pattern:
 
 5. Use StrategyFactory to apply chunking
    from rag.factory.strategy_factory import StrategyFactory
+   from rag.config.config import ChunkingConfig, SentenceChunkingConfig
    from rag.config.enums import ChunkingType
 
    chunker = StrategyFactory.create_chunker(
-       ChunkingType.SENTENCE,
-       max_words=100
+       ChunkingConfig(
+           type=ChunkingType.SENTENCE,
+           config=SentenceChunkingConfig(max_words=100)
+       )
    )
 
    chunks = []

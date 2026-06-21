@@ -1,5 +1,5 @@
 from rag.chunking.base import ChunkingStrategy
-from rag.config.config import ChunkingConfig
+from rag.config.config import FixedWindowChunkingConfig
 from rag.models.chunk import Chunk
 from rag.models.document import Document
 
@@ -8,7 +8,7 @@ class FixedWindowChunkingStrategy(ChunkingStrategy):
 
     def __init__(
         self,
-        config: ChunkingConfig
+        config: FixedWindowChunkingConfig
     ):
         self.config = config
 

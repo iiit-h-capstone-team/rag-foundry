@@ -1,7 +1,7 @@
 import re
 
 from rag.chunking.base import ChunkingStrategy
-from rag.config.config import ChunkingConfig
+from rag.config.config import SentenceChunkingConfig
 from rag.models.chunk import Chunk
 from rag.models.document import Document
 
@@ -11,7 +11,7 @@ class SentenceChunkingStrategy(
 
     def __init__(
         self,
-        config: ChunkingConfig
+        config: SentenceChunkingConfig
     ):
         self.config = config
 

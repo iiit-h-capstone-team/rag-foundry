@@ -7,47 +7,45 @@ providers:
 
 chunking:
   type: sentence
-  max_words: 100
-  overlap_sentences: 1
-  params: {}
+  config:
+    max_words: 100
+    overlap_sentences: 1
 
 embedding:
   type: sentence_transformer
-  model_name: BAAI/bge-large-en-v1.5
-  dimension: 1024
-  params: {}
+  config:
+    model_name: BAAI/bge-large-en-v1.5
+    dimension: 1024
 
 vector_store:
   type: faiss
-  dimension: 1024
-  params: {}
+  config:
+    dimension: 1024
 
 retrieval:
   type: dense_rerank
-  top_k: 5
-  initial_k: 20
-  dense_weight: 0.7
-  sparse_weight: 0.3
-  params: {}
+  config:
+    top_k: 5
+    initial_k: 20
 
 reranker:
   type: cross_encoder
-  model_name: BAAI/bge-reranker-v2-m3
-  params: {}
+  config:
+    model_name: BAAI/bge-reranker-v2-m3
 
 generation:
   strategy: default
   provider: groq
-  model: llama-3.3-70b-versatile
-  max_tokens: 1024
-  temperature: 0.7
-  system_prompt: null
-  params: {}
+  config:
+    model: llama-3.3-70b-versatile
+    max_tokens: 1024
+    temperature: 0.7
+    system_prompt: null
 
 evaluation:
   type: trace
   provider: groq
-  model: llama-3.3-70b-versatile
-  max_tokens: 2000
-  temperature: 0.0
-  params: {}
+  config:
+    model: llama-3.3-70b-versatile
+    max_tokens: 2000
+    temperature: 0.0

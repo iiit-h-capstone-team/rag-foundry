@@ -1,6 +1,6 @@
 import re
 from rag.chunking.base import ChunkingStrategy
-from rag.config.config import ChunkingConfig
+from rag.config.config import TokenChunkingConfig
 from rag.models.chunk import Chunk
 from rag.models.document import Document
 
@@ -9,7 +9,7 @@ class TokenChunkingStrategy(ChunkingStrategy):
 
     def __init__(
         self,
-        config: ChunkingConfig
+        config: TokenChunkingConfig
     ):
         self.config = config
 

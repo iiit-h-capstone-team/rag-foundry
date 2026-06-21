@@ -1,4 +1,4 @@
-from rag.config.config import GenerationConfig
+from rag.config.config import DefaultGenerationConfig
 from rag.generation.base import GenerationStrategy
 
 
@@ -6,7 +6,7 @@ class DefaultGenerationStrategy(GenerationStrategy):
 
     def __init__(
         self,
-        config: GenerationConfig,
+        config: DefaultGenerationConfig,
         provider,
     ):
         self.config = config

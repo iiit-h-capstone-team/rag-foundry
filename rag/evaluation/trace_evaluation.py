@@ -1,7 +1,7 @@
 import json
 import re
 
-from rag.config.config import EvaluationConfig
+from rag.config.config import TRACeEvaluationConfig
 from rag.evaluation.base import EvaluationStrategy
 
 
@@ -9,7 +9,7 @@ class TRACeEvaluationStrategy(EvaluationStrategy):
 
     def __init__(
         self,
-        config: EvaluationConfig,
+        config: TRACeEvaluationConfig,
         provider
     ):
         self.config = config

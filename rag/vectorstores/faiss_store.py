@@ -1,14 +1,14 @@
 import faiss
 import numpy as np
 
-from rag.config.config import VectorStoreConfig
+from rag.config.config import FaissVectorStoreConfig
 
 
 class FaissVectorStore:
 
     def __init__(
         self,
-        config: VectorStoreConfig
+        config: FaissVectorStoreConfig
     ):
         self.config = config
 

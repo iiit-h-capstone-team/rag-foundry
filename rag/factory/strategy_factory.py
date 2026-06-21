@@ -46,13 +46,13 @@ class StrategyFactory:
     ):
         strategies = {
             ChunkingType.SENTENCE: lambda: SentenceChunkingStrategy(
-                config=config
+                config=config.config
             ),
             ChunkingType.FIXED_WINDOW: lambda: FixedWindowChunkingStrategy(
-                config=config
+                config=config.config
             ),
             ChunkingType.TOKEN: lambda: TokenChunkingStrategy(
-                config=config
+                config=config.config
             )
         }
         return strategies[config.type]()
@@ -64,10 +64,10 @@ class StrategyFactory:
     ):
         strategies = {
             EmbeddingType.SENTENCE_TRANSFORMER: lambda: SentenceTransformerEmbeddingStrategy(
-                config=config
+                config=config.config
             ),
             EmbeddingType.OPENAI: lambda: OpenAIEmbeddingStrategy(
-                config=config
+                config=config.config
             )
         }
         return strategies[config.type]()
@@ -79,7 +79,7 @@ class StrategyFactory:
     ):
         strategies = {
             RerankerType.CROSS_ENCODER: lambda: CrossEncoderRerankerStrategy(
-                config=config
+                config=config.config
             )
         }
         return strategies[config.type]()
@@ -91,7 +91,7 @@ class StrategyFactory:
     ):
         strategies = {
             VectorStoreType.FAISS: lambda: FaissVectorStore(
-                config=config
+                config=config.config
             )
         }
         return strategies[config.type]()
@@ -107,18 +107,18 @@ class StrategyFactory:
     ):
         strategies = {
             RetrievalType.DENSE_RERANK: lambda: DenseRerankRetrievalStrategy(
-                config=config,
+                config=config.config,
                 embedder=embedder,
                 vector_store=vector_store,
                 reranker=reranker,
             ),
             RetrievalType.DENSE: lambda: DenseRetrievalStrategy(
-                config=config,
+                config=config.config,
                 embedder=embedder,
                 vector_store=vector_store,
             ),
             RetrievalType.HYBRID: lambda: HybridRetrievalStrategy(
-                config=config,
+                config=config.config,
                 embedder=embedder,
                 vector_store=vector_store,
                 bm25_store=bm25_store,
@@ -134,7 +134,7 @@ class StrategyFactory:
     ):
         strategies = {
             GenerationType.DEFAULT: lambda: DefaultGenerationStrategy(
-                config=config,
+                config=config.config,
                 provider=provider
             ),
         }
@@ -148,7 +148,7 @@ class StrategyFactory:
     ):
         strategies = {
             EvaluationType.TRACE: lambda: TRACeEvaluationStrategy(
-                config=config,
+                config=config.config,
                 provider=provider
             )
         }

@@ -1,4 +1,4 @@
-from rag.config.config import RetrievalConfig
+from rag.config.config import HybridRetrievalConfig
 from rag.retrieval.base import RetrievalStrategy
 
 
@@ -6,7 +6,7 @@ class HybridRetrievalStrategy(RetrievalStrategy):
 
     def __init__(
         self,
-        config: RetrievalConfig,
+        config: HybridRetrievalConfig,
         embedder,
         vector_store,
         bm25_store=None
