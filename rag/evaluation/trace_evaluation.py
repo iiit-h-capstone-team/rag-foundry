@@ -1,5 +1,7 @@
 import json
 import re
+
+from rag.config.config import TRACeEvaluationConfig
 from rag.evaluation.base import EvaluationStrategy
 
 
@@ -7,18 +9,19 @@ class TRACeEvaluationStrategy(EvaluationStrategy):
 
     def __init__(
         self,
-        judge_client,
-        model: str = "llama-3.3-70b-versatile"
+        config: TRACeEvaluationConfig,
+        provider
     ):
-        self.judge_client = judge_client
-        self.model = model
+        self.config = config
+        self.provider = provider
 
     def split_into_sentences(self, text: str) -> list[str]:
         import nltk
-        try:
-            nltk.data.find('tokenizers/punkt')
-        except LookupError:
-            nltk.download('punkt', quiet=True)
+        for resource in ('punkt', 'punkt_tab'):
+            try:
+                nltk.data.find(f'tokenizers/{resource}')
+            except LookupError:
+                nltk.download(resource, quiet=True)
 
         from nltk.tokenize import sent_tokenize
         sentences = sent_tokenize(text.strip())
@@ -118,11 +121,11 @@ The overall_supported field: true only if ALL response sentences are fully suppo
 
 Respond with valid JSON only. No text before or after the JSON."""
 
-        result = self.judge_client.chat.completions.create(
-            model=self.model,
+        result = self.provider.generate(
+            model=self.config.model,
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=2000,
-            temperature=0.0
+            max_tokens=self.config.max_tokens,
+            temperature=self.config.temperature
         )
 
         raw = result.choices[0].message.content.strip()

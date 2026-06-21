@@ -1,3 +1,4 @@
+from rag.config.config import HybridRetrievalConfig
 from rag.retrieval.base import RetrievalStrategy
 
 
@@ -5,23 +6,24 @@ class HybridRetrievalStrategy(RetrievalStrategy):
 
     def __init__(
         self,
+        config: HybridRetrievalConfig,
         embedder,
         vector_store,
-        bm25_store=None,
-        dense_weight: float = 0.7,
-        sparse_weight: float = 0.3
+        bm25_store=None
     ):
+        self.config = config
         self.embedder = embedder
         self.vector_store = vector_store
         self.bm25_store = bm25_store
-        self.dense_weight = dense_weight
-        self.sparse_weight = sparse_weight
 
     def retrieve(
         self,
-        query: str,
-        top_k: int
+        query: str
     ):
+        top_k = self.config.top_k
+        dense_weight = self.config.dense_weight
+        sparse_weight = self.config.sparse_weight
+
         query_embedding = self.embedder.embed(query)
 
         if hasattr(query_embedding[0], '__len__'):
@@ -36,14 +38,14 @@ class HybridRetrievalStrategy(RetrievalStrategy):
         for rank, (idx, score) in enumerate(zip(dense_indices[0], dense_distances[0])):
             if idx >= 0:
                 normalized_score = score / (max(dense_distances[0]) + 1e-6)
-                dense_results[int(idx)] = self.dense_weight * normalized_score
+                dense_results[int(idx)] = dense_weight * normalized_score
 
         sparse_results = {}
         if self.bm25_store:
             sparse_scores = self.bm25_store.search(query, top_k * 2)
             for idx, score in sparse_scores:
                 normalized_score = score / max([s for _, s in sparse_scores] + [1e-6])
-                sparse_results[int(idx)] = self.sparse_weight * normalized_score
+                sparse_results[int(idx)] = sparse_weight * normalized_score
 
         combined_scores = {}
         for idx in set(dense_results.keys()) | set(sparse_results.keys()):

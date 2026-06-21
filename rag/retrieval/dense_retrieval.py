@@ -1,3 +1,4 @@
+from rag.config.config import DenseRetrievalConfig
 from rag.retrieval.base import RetrievalStrategy
 
 
@@ -5,16 +6,17 @@ class DenseRetrievalStrategy(RetrievalStrategy):
 
     def __init__(
         self,
+        config: DenseRetrievalConfig,
         embedder,
         vector_store
     ):
+        self.config = config
         self.embedder = embedder
         self.vector_store = vector_store
 
     def retrieve(
         self,
-        query: str,
-        top_k: int
+        query: str
     ):
         query_embedding = self.embedder.embed(query)
 
@@ -23,7 +25,7 @@ class DenseRetrievalStrategy(RetrievalStrategy):
 
         distances, indices = self.vector_store.search(
             query_embedding.reshape(1, -1),
-            top_k
+            self.config.top_k
         )
 
         results = []

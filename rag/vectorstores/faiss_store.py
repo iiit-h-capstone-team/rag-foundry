@@ -1,15 +1,19 @@
 import faiss
 import numpy as np
 
+from rag.config.config import FaissVectorStoreConfig
+
+
 class FaissVectorStore:
 
     def __init__(
         self,
-        dimension
+        config: FaissVectorStoreConfig
     ):
+        self.config = config
 
         self.index = faiss.IndexFlatIP(
-            dimension
+            self.config.dimension
         )
 
         self.chunks = []

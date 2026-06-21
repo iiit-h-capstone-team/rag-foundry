@@ -1,4 +1,5 @@
 from rag.chunking.base import ChunkingStrategy
+from rag.config.config import FixedWindowChunkingConfig
 from rag.models.chunk import Chunk
 from rag.models.document import Document
 
@@ -7,11 +8,17 @@ class FixedWindowChunkingStrategy(ChunkingStrategy):
 
     def __init__(
         self,
-        window_size: int = 256,
-        overlap: int = 50
+        config: FixedWindowChunkingConfig
     ):
-        self.window_size = window_size
-        self.overlap = overlap
+        self.config = config
+
+    @property
+    def window_size(self) -> int:
+        return self.config.window_size
+
+    @property
+    def overlap(self) -> int:
+        return self.config.overlap
 
     def chunk(
         self,
@@ -37,6 +44,9 @@ class FixedWindowChunkingStrategy(ChunkingStrategy):
                 }
             )
             chunks.append(chunk)
+
+            if end >= len(text):
+                break
 
             start = end - self.overlap
 

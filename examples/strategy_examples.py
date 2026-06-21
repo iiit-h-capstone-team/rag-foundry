@@ -4,16 +4,21 @@ This demonstrates how to use each strategy type.
 """
 
 from rag.factory.strategy_factory import StrategyFactory
+from rag.config.config import (
+    ChunkingConfig,
+    FixedWindowChunkingConfig,
+    TokenChunkingConfig,
+    EmbeddingConfig,
+    SentenceTransformerEmbeddingConfig,
+    VectorStoreConfig,
+    FaissVectorStoreConfig,
+)
 from rag.config.enums import (
     ChunkingType,
     EmbeddingType,
-    RetrievalType,
-    GenerationType,
-    EvaluationType,
-    VectorStoreType
+    VectorStoreType,
 )
 from rag.models.document import Document
-from rag.vectorstores.faiss_store import FaissVectorStore
 import numpy as np
 
 
@@ -28,24 +33,34 @@ def example_chunking():
     print("=== CHUNKING STRATEGIES ===\n")
 
     # Sentence chunking
-    sentence_chunker = StrategyFactory.create_chunker(ChunkingType.SENTENCE)
+    sentence_chunker = StrategyFactory.create_chunker(
+        ChunkingConfig(type=ChunkingType.SENTENCE)
+    )
     chunks = sentence_chunker.chunk(doc)
     print(f"Sentence Chunking: {len(chunks)} chunks")
 
     # Fixed window chunking
     fixed_chunker = StrategyFactory.create_chunker(
-        ChunkingType.FIXED_WINDOW,
-        window_size=50,
-        overlap=10
+        ChunkingConfig(
+            type=ChunkingType.FIXED_WINDOW,
+            config=FixedWindowChunkingConfig(
+                window_size=50,
+                overlap=10
+            )
+        )
     )
     chunks = fixed_chunker.chunk(doc)
     print(f"Fixed Window Chunking: {len(chunks)} chunks")
 
     # Token chunking
     token_chunker = StrategyFactory.create_chunker(
-        ChunkingType.TOKEN,
-        max_tokens=10,
-        overlap_tokens=2
+        ChunkingConfig(
+            type=ChunkingType.TOKEN,
+            config=TokenChunkingConfig(
+                max_tokens=10,
+                overlap_tokens=2
+            )
+        )
     )
     chunks = token_chunker.chunk(doc)
     print(f"Token Chunking: {len(chunks)} chunks\n")
@@ -63,8 +78,12 @@ def example_embedding():
     # SentenceTransformer embedding (doesn't require API keys).
     # Any SentenceTransformer model works here, e.g. a BGE model name.
     local_embedder = StrategyFactory.create_embedder(
-        EmbeddingType.SENTENCE_TRANSFORMER,
-        model_name='sentence-transformers/all-MiniLM-L6-v2'
+        EmbeddingConfig(
+            type=EmbeddingType.SENTENCE_TRANSFORMER,
+            config=SentenceTransformerEmbeddingConfig(
+                model_name='sentence-transformers/all-MiniLM-L6-v2'
+            )
+        )
     )
     embeddings = local_embedder.embed(texts)
     print(f"SentenceTransformer Embeddings shape: {np.array(embeddings).shape}")
@@ -79,8 +98,10 @@ def example_vectorstore_and_retrieval():
 
     # Create FAISS vector store
     vector_store = StrategyFactory.create_vectorstore(
-        VectorStoreType.FAISS,
-        dimension=384  # MiniLM dimension
+        VectorStoreConfig(
+            type=VectorStoreType.FAISS,
+            config=FaissVectorStoreConfig(dimension=384)  # MiniLM dimension
+        )
     )
     print("FAISS Vector Store created")
 
@@ -103,11 +124,16 @@ def example_generation():
     # Note: These require actual clients (Groq, OpenAI)
     # Here we show the factory pattern usage
     try:
-        # This would fail without actual Groq client
-        # groq_gen = StrategyFactory.create_generator(
-        #     GenerationType.GROQ,
-        #     client=groq_client,
-        #     model='llama-3.1-8b-instant'
+        # This would require a registered provider:
+        # from rag.config.config import GenerationConfig, DefaultGenerationConfig
+        # from rag.config.enums import GenerationType
+        # generator = StrategyFactory.create_generator(
+        #     GenerationConfig(
+        #         strategy=GenerationType.DEFAULT,
+        #         provider='groq',
+        #         config=DefaultGenerationConfig(model='llama-3.1-8b-instant'),
+        #     ),
+        #     provider=ProviderManager.get_provider('groq'),
         # )
         print("Groq Generation Strategy - requires Groq API client")
         print("OpenAI Generation Strategy - requires OpenAI API client\n")
@@ -121,11 +147,16 @@ def example_evaluation():
 
     # Note: TRACe evaluation requires a judge client
     try:
-        # This would work with actual Groq client
+        # This would require a registered provider:
+        # from rag.config.config import EvaluationConfig, TRACeEvaluationConfig
+        # from rag.config.enums import EvaluationType
         # evaluator = StrategyFactory.create_evaluator(
-        #     EvaluationType.TRACE,
-        #     judge_client=groq_client,
-        #     model='llama-3.3-70b-versatile'
+        #     EvaluationConfig(
+        #         type=EvaluationType.TRACE,
+        #         provider='groq',
+        #         config=TRACeEvaluationConfig(model='llama-3.3-70b-versatile'),
+        #     ),
+        #     provider=ProviderManager.get_provider('groq'),
         # )
         print("TRACe Evaluation Strategy - requires judge LLM client\n")
     except Exception as e:

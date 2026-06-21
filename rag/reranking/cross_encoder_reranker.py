@@ -1,3 +1,4 @@
+from rag.config.config import CrossEncoderRerankerConfig
 from rag.reranking.base import RerankerStrategy
 
 
@@ -5,23 +6,18 @@ class CrossEncoderRerankerStrategy(RerankerStrategy):
 
     def __init__(
         self,
-        model=None,
-        model_name=None
+        config: CrossEncoderRerankerConfig
     ):
-        if isinstance(model, str):
-            model_name = model
-            model = None
+        self.config = config
 
-        if model is None:
-            if model_name is None:
-                raise ValueError(
-                    "CrossEncoderRerankerStrategy requires either a preloaded "
-                    "`model` object or a `model_name` to load."
-                )
-            from sentence_transformers import CrossEncoder
-            model = CrossEncoder(model_name)
+        if not self.config.model_name:
+            raise ValueError(
+                "CrossEncoderRerankerStrategy requires 'model_name' "
+                "in the reranker config."
+            )
 
-        self.model = model
+        from sentence_transformers import CrossEncoder
+        self.model = CrossEncoder(self.config.model_name)
 
     def rerank(
         self,

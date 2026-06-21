@@ -1,5 +1,6 @@
 import re
 from rag.chunking.base import ChunkingStrategy
+from rag.config.config import TokenChunkingConfig
 from rag.models.chunk import Chunk
 from rag.models.document import Document
 
@@ -8,11 +9,17 @@ class TokenChunkingStrategy(ChunkingStrategy):
 
     def __init__(
         self,
-        max_tokens: int = 200,
-        overlap_tokens: int = 20
+        config: TokenChunkingConfig
     ):
-        self.max_tokens = max_tokens
-        self.overlap_tokens = overlap_tokens
+        self.config = config
+
+    @property
+    def max_tokens(self) -> int:
+        return self.config.max_tokens
+
+    @property
+    def overlap_tokens(self) -> int:
+        return self.config.overlap_tokens
 
     def count_tokens(self, text: str) -> int:
         return len(text.split())

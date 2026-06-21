@@ -1,39 +1,54 @@
+# Production-grade example demonstrating provider-specific credential
+# resolution: each provider declares its own `api_key_env`, so different
+# providers read different environment variables (no hardcoded names).
+providers:
+  openai:
+    type: openai
+    api_key_env: OPENAI_API_KEY
+    params: {}
+  groq:
+    type: groq
+    api_key_env: GROQ_API_KEY
+    params: {}
+
 chunking:
   type: token
-  max_tokens: 200
-  overlap_tokens: 20
-  params: {}
+  config:
+    max_tokens: 200
+    overlap_tokens: 20
 
 embedding:
   type: openai
-  model: text-embedding-3-large
-  dimension: 3072
-  params: {}
+  config:
+    model: text-embedding-3-large
+    dimension: 3072
 
 vector_store:
   type: faiss
-  dimension: 3072
-  params: {}
+  config:
+    dimension: 3072
 
 retrieval:
   type: hybrid
-  top_k: 5
-  initial_k: 25
-  dense_weight: 0.7
-  sparse_weight: 0.3
-  params: {}
+  config:
+    top_k: 5
+    initial_k: 25
+    dense_weight: 0.7
+    sparse_weight: 0.3
 
 generation:
-  type: openai
-  model: gpt-4
-  max_tokens: 2048
-  temperature: 0.3
-  system_prompt: "You are a helpful assistant that answers questions based on provided context."
-  params: {}
+  strategy: default
+  provider: openai
+  config:
+    model: gpt-4
+    max_tokens: 2048
+    temperature: 0.3
+    system_prompt: "You are a helpful assistant that answers questions based on provided context."
 
 evaluation:
   type: trace
-  model: gpt-4
-  max_tokens: 2000
-  temperature: 0.0
-  params: {}
+  provider: groq
+  config:
+    model: llama-3.3-70b-versatile
+    max_tokens: 2000
+    temperature: 0.0

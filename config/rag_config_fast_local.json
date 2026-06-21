@@ -1,42 +1,56 @@
 {
+  "providers": {
+    "groq": {
+      "type": "groq",
+      "api_key_env": "GROQ_API_KEY",
+      "params": {
+        "cooldown_seconds": 60
+      }
+    }
+  },
   "chunking": {
     "type": "fixed_window",
-    "window_size": 256,
-    "overlap": 50,
-    "params": {}
+    "config": {
+      "window_size": 256,
+      "overlap": 50
+    }
   },
   "embedding": {
-    "type": "local",
-    "model_name": "sentence-transformers/all-MiniLM-L6-v2",
-    "dimension": 384,
-    "params": {}
+    "type": "sentence_transformer",
+    "config": {
+      "model_name": "sentence-transformers/all-MiniLM-L6-v2",
+      "dimension": 384
+    }
   },
   "vector_store": {
     "type": "faiss",
-    "dimension": 384,
-    "params": {}
+    "config": {
+      "dimension": 384
+    }
   },
   "retrieval": {
     "type": "dense",
-    "top_k": 5,
-    "initial_k": 10,
-    "dense_weight": 0.7,
-    "sparse_weight": 0.3,
-    "params": {}
+    "config": {
+      "top_k": 5
+    }
   },
   "generation": {
-    "type": "groq",
-    "model": "llama-3.1-8b-instant",
-    "max_tokens": 512,
-    "temperature": 0.5,
-    "system_prompt": null,
-    "params": {}
+    "strategy": "default",
+    "provider": "groq",
+    "config": {
+      "model": "llama-3.1-8b-instant",
+      "max_tokens": 512,
+      "temperature": 0.5,
+      "system_prompt": null
+    }
   },
   "evaluation": {
     "type": "trace",
-    "model": "llama-3.1-8b-instant",
-    "max_tokens": 2000,
-    "temperature": 0.0,
-    "params": {}
+    "provider": "groq",
+    "config": {
+      "model": "llama-3.1-8b-instant",
+      "max_tokens": 2000,
+      "temperature": 0.0
+    }
   }
 }

@@ -1,3 +1,4 @@
+from rag.config.config import DenseRerankRetrievalConfig
 from rag.retrieval.base import RetrievalStrategy
 
 
@@ -5,20 +6,19 @@ class DenseRerankRetrievalStrategy(RetrievalStrategy):
 
     def __init__(
         self,
+        config: DenseRerankRetrievalConfig,
         embedder,
         vector_store,
         reranker,
-        initial_k: int = 20
     ):
+        self.config = config
         self.embedder = embedder
         self.vector_store = vector_store
         self.reranker = reranker
-        self.initial_k = initial_k
 
     def retrieve(
         self,
-        query: str,
-        top_k: int
+        query: str
     ):
         query_embedding = self.embedder.embed(query)
 
@@ -27,7 +27,7 @@ class DenseRerankRetrievalStrategy(RetrievalStrategy):
 
         distances, indices = self.vector_store.search(
             query_embedding.reshape(1, -1),
-            self.initial_k
+            self.config.initial_k
         )
 
         candidates = []
@@ -57,7 +57,7 @@ class DenseRerankRetrievalStrategy(RetrievalStrategy):
             candidates,
             key=lambda x: x["rerank_score"],
             reverse=True
-        )[:top_k]
+        )[:self.config.top_k]
 
         results = [
             {

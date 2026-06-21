@@ -1,5 +1,11 @@
 from enum import Enum
 
+class ProviderType(str, Enum):
+    GROQ = "groq"
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+    GOOGLE = "google"
+
 class ChunkingType(str, Enum):
     SENTENCE = "sentence"
     FIXED_WINDOW = "fixed_window"
@@ -26,8 +32,7 @@ class VectorStoreType(str, Enum):
 
 
 class GenerationType(str, Enum):
-    GROQ = "groq"
-    OPENAI = "openai"
+    DEFAULT = "default"
 
 
 class EvaluationType(str, Enum):
