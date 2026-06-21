@@ -17,10 +17,19 @@ from .enums import (
 class ProviderConfig:
     """
     Configuration for LLM providers.
+
+    Credentials are resolved at provider-initialization time from the
+    environment variable named by ``api_key_env`` (e.g. ``GROQ_API_KEY``,
+    ``OPENAI_API_KEY``). Environment variable names are never hardcoded in the
+    provider layer; each provider declares its own via this field.
     """
 
     type: ProviderType
+    api_key_env: Optional[str] = None
     params: Dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self):
+        self.type = ProviderType(self.type)
 
 
 @dataclass

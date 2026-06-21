@@ -1,4 +1,13 @@
 {
+  "providers": {
+    "groq": {
+      "type": "groq",
+      "api_key_env": "GROQ_API_KEY",
+      "params": {
+        "cooldown_seconds": 60
+      }
+    }
+  },
   "chunking": {
     "type": "fixed_window",
     "window_size": 256,
@@ -6,7 +15,7 @@
     "params": {}
   },
   "embedding": {
-    "type": "local",
+    "type": "sentence_transformer",
     "model_name": "sentence-transformers/all-MiniLM-L6-v2",
     "dimension": 384,
     "params": {}
@@ -25,7 +34,8 @@
     "params": {}
   },
   "generation": {
-    "type": "groq",
+    "strategy": "default",
+    "provider": "groq",
     "model": "llama-3.1-8b-instant",
     "max_tokens": 512,
     "temperature": 0.5,
@@ -34,6 +44,7 @@
   },
   "evaluation": {
     "type": "trace",
+    "provider": "groq",
     "model": "llama-3.1-8b-instant",
     "max_tokens": 2000,
     "temperature": 0.0,

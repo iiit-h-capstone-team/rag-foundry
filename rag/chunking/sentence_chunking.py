@@ -1,6 +1,7 @@
 import re
 
 from rag.chunking.base import ChunkingStrategy
+from rag.config.config import ChunkingConfig
 from rag.models.chunk import Chunk
 from rag.models.document import Document
 
@@ -10,13 +11,17 @@ class SentenceChunkingStrategy(
 
     def __init__(
         self,
-        max_words=100,
-        overlap_sentences=1
+        config: ChunkingConfig
     ):
+        self.config = config
 
-        self.max_words = max_words
+    @property
+    def max_words(self) -> int:
+        return self.config.max_words
 
-        self.overlap_sentences = overlap_sentences
+    @property
+    def overlap_sentences(self) -> int:
+        return self.config.overlap_sentences
 
     def split_sentences(
         self,

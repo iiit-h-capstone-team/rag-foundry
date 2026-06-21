@@ -1,9 +1,14 @@
 """
 Example RAG configurations for different use cases.
+
+Every configuration is self-contained: each strategy section owns its tunable
+settings, and providers declare their own credential environment variable via
+``api_key_env`` (resolved at pipeline-build time).
 """
 
 from rag.config.config import (
     RAGConfig,
+    ProviderConfig,
     ChunkingConfig,
     EmbeddingConfig,
     VectorStoreConfig,
@@ -13,6 +18,7 @@ from rag.config.config import (
     EvaluationConfig
 )
 from rag.config.enums import (
+    ProviderType,
     ChunkingType,
     EmbeddingType,
     VectorStoreType,
@@ -23,8 +29,20 @@ from rag.config.enums import (
 )
 
 
-# Configuration 1: Fast & Local (No API Calls)
+def _groq_provider() -> dict:
+    """A single Groq provider reading credentials from ``GROQ_API_KEY``."""
+    return {
+        "groq": ProviderConfig(
+            type=ProviderType.GROQ,
+            api_key_env="GROQ_API_KEY",
+            params={"cooldown_seconds": 60}
+        )
+    }
+
+
+# Configuration 1: Fast & Local embeddings, Groq generation/evaluation
 config_fast_local = RAGConfig(
+    providers=_groq_provider(),
     chunking=ChunkingConfig(
         type=ChunkingType.FIXED_WINDOW,
         window_size=256,
@@ -45,13 +63,15 @@ config_fast_local = RAGConfig(
         initial_k=10
     ),
     generation=GenerationConfig(
-        type=GenerationType.GROQ,
+        strategy=GenerationType.DEFAULT,
+        provider='groq',
         model='llama-3.1-8b-instant',
         max_tokens=512,
         temperature=0.5
     ),
     evaluation=EvaluationConfig(
         type=EvaluationType.TRACE,
+        provider='groq',
         model='llama-3.1-8b-instant'
     )
 )
@@ -59,6 +79,7 @@ config_fast_local = RAGConfig(
 
 # Configuration 2: High Quality with Reranking
 config_high_quality = RAGConfig(
+    providers=_groq_provider(),
     chunking=ChunkingConfig(
         type=ChunkingType.SENTENCE,
         max_words=100,
@@ -83,20 +104,34 @@ config_high_quality = RAGConfig(
         model_name='BAAI/bge-reranker-v2-m3'
     ),
     generation=GenerationConfig(
-        type=GenerationType.GROQ,
+        strategy=GenerationType.DEFAULT,
+        provider='groq',
         model='llama-3.3-70b-versatile',
         max_tokens=1024,
         temperature=0.7
     ),
     evaluation=EvaluationConfig(
         type=EvaluationType.TRACE,
+        provider='groq',
         model='llama-3.3-70b-versatile'
     )
 )
 
 
-# Configuration 3: OpenAI-based (Production Grade)
+# Configuration 3: OpenAI-based (Production Grade).
+# Demonstrates provider-specific env resolution: OpenAI for generation,
+# Groq for evaluation, each reading its own api_key_env.
 config_openai_production = RAGConfig(
+    providers={
+        "openai": ProviderConfig(
+            type=ProviderType.OPENAI,
+            api_key_env="OPENAI_API_KEY"
+        ),
+        "groq": ProviderConfig(
+            type=ProviderType.GROQ,
+            api_key_env="GROQ_API_KEY"
+        ),
+    },
     chunking=ChunkingConfig(
         type=ChunkingType.TOKEN,
         max_tokens=200,
@@ -119,7 +154,8 @@ config_openai_production = RAGConfig(
         sparse_weight=0.3
     ),
     generation=GenerationConfig(
-        type=GenerationType.OPENAI,
+        strategy=GenerationType.DEFAULT,
+        provider='openai',
         model='gpt-4',
         max_tokens=2048,
         temperature=0.3,
@@ -127,13 +163,15 @@ config_openai_production = RAGConfig(
     ),
     evaluation=EvaluationConfig(
         type=EvaluationType.TRACE,
-        model='gpt-4'
+        provider='groq',
+        model='llama-3.3-70b-versatile'
     )
 )
 
 
 # Configuration 4: Medical/Scientific Documents
 config_medical = RAGConfig(
+    providers=_groq_provider(),
     chunking=ChunkingConfig(
         type=ChunkingType.SENTENCE,
         max_words=150,
@@ -158,13 +196,15 @@ config_medical = RAGConfig(
         model_name='BAAI/bge-reranker-v2-m3'
     ),
     generation=GenerationConfig(
-        type=GenerationType.GROQ,
+        strategy=GenerationType.DEFAULT,
+        provider='groq',
         model='llama-3.3-70b-versatile',
         max_tokens=1024,
         temperature=0.2
     ),
     evaluation=EvaluationConfig(
         type=EvaluationType.TRACE,
+        provider='groq',
         model='llama-3.3-70b-versatile'
     )
 )
@@ -172,6 +212,7 @@ config_medical = RAGConfig(
 
 # Configuration 5: Cost-Optimized
 config_cost_optimized = RAGConfig(
+    providers=_groq_provider(),
     chunking=ChunkingConfig(
         type=ChunkingType.FIXED_WINDOW,
         window_size=512,
@@ -192,13 +233,15 @@ config_cost_optimized = RAGConfig(
         initial_k=10
     ),
     generation=GenerationConfig(
-        type=GenerationType.GROQ,
+        strategy=GenerationType.DEFAULT,
+        provider='groq',
         model='llama-3.1-8b-instant',
         max_tokens=256,
         temperature=0.5
     ),
     evaluation=EvaluationConfig(
         type=EvaluationType.TRACE,
+        provider='groq',
         model='llama-3.1-8b-instant'
     )
 )
@@ -223,7 +266,7 @@ def get_config_by_name(name: str) -> RAGConfig:
 
 if __name__ == "__main__":
     print("Available Configurations:")
-    print("1. fast_local - Fast & local (no API calls)")
+    print("1. fast_local - Fast & local embeddings (Groq generation)")
     print("2. high_quality - High quality with reranking")
     print("3. openai_production - Production grade OpenAI")
     print("4. medical - Medical/scientific documents")
@@ -234,5 +277,5 @@ if __name__ == "__main__":
     print(f"Chunking: {config.chunking.type}")
     print(f"Embedding: {config.embedding.type}")
     print(f"Retrieval: {config.retrieval.type}")
-    print(f"Generation: {config.generation.type}")
+    print(f"Generation: {config.generation.strategy}")
     print(f"Evaluation: {config.evaluation.type}")

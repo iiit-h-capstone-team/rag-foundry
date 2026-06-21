@@ -2,6 +2,9 @@ from enum import Enum
 
 class ProviderType(str, Enum):
     GROQ = "groq"
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+    GOOGLE = "google"
 
 class ChunkingType(str, Enum):
     SENTENCE = "sentence"

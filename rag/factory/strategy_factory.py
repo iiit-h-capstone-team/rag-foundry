@@ -15,7 +15,6 @@ from rag.config.enums import (
     VectorStoreType,
     GenerationType,
     EvaluationType,
-    ProviderType
 )
 
 from rag.chunking.sentence_chunking import SentenceChunkingStrategy
@@ -117,7 +116,6 @@ class StrategyFactory:
                 config=config,
                 embedder=embedder,
                 vector_store=vector_store,
-                reranker=reranker,
             ),
             RetrievalType.HYBRID: lambda: HybridRetrievalStrategy(
                 config=config,
@@ -130,28 +128,28 @@ class StrategyFactory:
 
     @staticmethod
     def create_generator(
-        provider: ProviderType,
         config: GenerationConfig,
-        **kwargs
+        *,
+        provider,
     ):
         strategies = {
             GenerationType.DEFAULT: lambda: DefaultGenerationStrategy(
-                provider=provider,
-                config=config
+                config=config,
+                provider=provider
             ),
         }
-        return strategies[config.type]()
+        return strategies[config.strategy]()
 
     @staticmethod
     def create_evaluator(
-        provider: ProviderType,
         config: EvaluationConfig,
-        **kwargs
+        *,
+        provider,
     ):
         strategies = {
             EvaluationType.TRACE: lambda: TRACeEvaluationStrategy(
-                provider=provider,
-                config=config
+                config=config,
+                provider=provider
             )
         }
         return strategies[config.type]()

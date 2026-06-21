@@ -6,18 +6,23 @@ class ProviderManager:
     _providers = {}
 
     @classmethod
-    def register_provider(
+    def register(
         cls,
         provider_name: str,
-        provider_type: str,
-        config: dict
+        provider_type,
+        config
     ):
+        """
+        Register a provider instance under ``provider_name``.
+        Idempotent: an already-registered provider is reused.
+        """
 
         if provider_name in cls._providers:
             return
 
         cls._providers[provider_name] = (
             ProviderFactory.create_provider(
+                provider_name=provider_name,
                 provider_type=provider_type,
                 config=config
             )

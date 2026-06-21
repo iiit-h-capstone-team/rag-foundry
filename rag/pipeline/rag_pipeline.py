@@ -1,5 +1,19 @@
+import numpy as np
+
+from rag.config.config import RAGConfig
+from rag.factory.strategy_factory import StrategyFactory
+from rag.models.document import Document
+from providers.provider_manager import ProviderManager
+
+
 class RAGPipeline:
-    """Complete RAG pipeline using configuration."""
+    """Complete RAG pipeline using configuration.
+
+    Pure orchestrator: it knows only which strategy to build, the config object
+    for that strategy, and the runtime dependencies. It never expands or reads
+    individual strategy parameters — every strategy reads its own settings from
+    its config object.
+    """
 
     def __init__(self, config: RAGConfig):
         """
@@ -30,6 +44,7 @@ class RAGPipeline:
                 config=provider_config
             )
 
+
     def _initialize_strategies(self):
         """Initialize all strategies from config."""
 
@@ -45,27 +60,23 @@ class RAGPipeline:
 
         # Vector Store
         self.vector_store = StrategyFactory.create_vectorstore(
-            self.config.vector_store.type,
-            embedding_config=self.config.embedding
+            self.config.vector_store
         )
 
-        # Reranking (only used by rerank-based retrievers). Build from config;
-        # a prebuilt reranker/model passed via clients takes precedence.
+        # Reranking (only used by rerank-based retrievers).
         self.reranker = (
-        StrategyFactory.create_reranker(
-            self.config.reranker
+            StrategyFactory.create_reranker(self.config.reranker)
+            if self.config.reranker
+            else None
         )
-        if self.config.reranker
-        else None
-        )
-
 
         # Retrieval
         self.retriever = StrategyFactory.create_retriever(
             config=self.config.retrieval,
             embedder=self.embedder,
             vector_store=self.vector_store,
-            reranker=self.reranker
+            reranker=self.reranker,
+            bm25_store=None,
         )
 
         # Generation
@@ -113,18 +124,15 @@ class RAGPipeline:
         self.vector_store.add(embeddings, all_chunks)
         print(f"Vector store ready with {len(all_chunks)} chunks")
 
-    def query(self, query: str, top_k: int = None) -> dict:
+    def query(self, query: str) -> dict:
         """Run complete RAG query."""
-        if top_k is None:
-            top_k = self.config.retrieval.top_k
-
         print(f"\n{'='*60}")
         print(f"Query: {query}")
         print('='*60)
 
         # 1. Retrieve
         print("\n[1] Retrieving documents...")
-        retrieved = self.retriever.retrieve(query, top_k=top_k)
+        retrieved = self.retriever.retrieve(query)
         print(f"Retrieved {len(retrieved)} documents")
 
         # Format for generation
@@ -144,23 +152,17 @@ class RAGPipeline:
         ])
 
         response = self.generator.generate(
-            config={
-                "query": query,
-                "context": context,
-                "max_tokens": self.config.generation.max_tokens,
-                "temperature": self.config.generation.temperature
-            }
+            query=query,
+            context=context,
         )
         print(f"Response generated ({len(response)} chars)")
 
         # 3. Evaluate
         print("\n[3] Evaluating response...")
         scores = self.evaluator.evaluate(
-            config={
-                "query": query,
-                "retrieved_docs": retrieved_docs,
-                "response": response
-            }
+            query=query,
+            retrieved_docs=retrieved_docs,
+            response=response,
         )
         print(f"Evaluation complete")
 

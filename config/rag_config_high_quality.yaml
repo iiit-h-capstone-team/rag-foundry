@@ -1,3 +1,10 @@
+providers:
+  groq:
+    type: groq
+    api_key_env: GROQ_API_KEY
+    params:
+      cooldown_seconds: 60
+
 chunking:
   type: sentence
   max_words: 100
@@ -28,17 +35,9 @@ reranker:
   model_name: BAAI/bge-reranker-v2-m3
   params: {}
 
-providers:
-
-  groq_free:
-    type: groq
-    api_keys:
-      - ${GROQ_FREE}
-    cooldown_seconds: 60
-
 generation:
   strategy: default
-  provider: groq_free
+  provider: groq
   model: llama-3.3-70b-versatile
   max_tokens: 1024
   temperature: 0.7
@@ -47,7 +46,7 @@ generation:
 
 evaluation:
   type: trace
-  provider: groq_free
+  provider: groq
   model: llama-3.3-70b-versatile
   max_tokens: 2000
   temperature: 0.0

@@ -1,3 +1,4 @@
+from rag.config.config import EmbeddingConfig
 from rag.embedding.base import EmbeddingStrategy
 
 
@@ -5,23 +6,19 @@ class SentenceTransformerEmbeddingStrategy(EmbeddingStrategy):
 
     def __init__(
         self,
-        model=None,
-        model_name=None
+        config: EmbeddingConfig
     ):
-        if isinstance(model, str):
-            model_name = model
-            model = None
+        self.config = config
 
-        if model is None:
-            if model_name is None:
-                raise ValueError(
-                    "SentenceTransformerEmbeddingStrategy requires either a "
-                    "preloaded `model` object or a `model_name` to load."
-                )
-            from sentence_transformers import SentenceTransformer
-            model = SentenceTransformer(model_name)
+        model_name = self.config.model_name or self.config.model
+        if not model_name:
+            raise ValueError(
+                "SentenceTransformerEmbeddingStrategy requires "
+                "'model_name' (or 'model') in the embedding config."
+            )
 
-        self.model = model
+        from sentence_transformers import SentenceTransformer
+        self.model = SentenceTransformer(model_name)
 
     def embed(self, texts):
         if isinstance(texts, str):
