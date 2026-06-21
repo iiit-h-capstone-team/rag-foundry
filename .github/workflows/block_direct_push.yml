@@ -1,0 +1,17 @@
+name: Block Direct Pushes to Main
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  block-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail the build on direct pushes
+        if: github.actor != 'Aditya3007'
+        run: |
+          echo "ERROR: Direct pushes to the main branch are strictly blocked."
+          echo "Please create a new branch and submit a Pull Request instead."
+          exit 1
