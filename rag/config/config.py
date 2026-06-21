@@ -276,6 +276,17 @@ class EvaluationConfig:
 
 
 @dataclass
+class CacheConfig:
+    """Cache subsystem settings.
+
+    Caching is content-addressed and never auto-deletes entries; toggling
+    ``enabled`` off bypasses the cache entirely.
+    """
+    enabled: bool = True
+    cache_dir: str = "./cache"
+
+
+@dataclass
 class RAGConfig:
     """Complete RAG system configuration."""
 
@@ -297,8 +308,11 @@ class RAGConfig:
 
     mode: Mode = Mode.DEV
 
+    cache: CacheConfig = field(default_factory=CacheConfig)
+
     def __post_init__(self):
         self.mode = Mode(self.mode)
+        self.cache = _coerce(self.cache, CacheConfig)
 
     @staticmethod
     def _section_to_dict(section) -> Dict[str, Any]:
@@ -330,7 +344,8 @@ class RAGConfig:
                 if self.reranker else None
             ),
             'generation': self._section_to_dict(self.generation),
-            'evaluation': self._section_to_dict(self.evaluation)
+            'evaluation': self._section_to_dict(self.evaluation),
+            'cache': self._section_to_dict(self.cache)
         }
 
     @classmethod
@@ -351,5 +366,6 @@ class RAGConfig:
                 if data.get('reranker') else None
             ),
             generation=GenerationConfig(**data.get('generation', {})),
-            evaluation=EvaluationConfig(**data.get('evaluation', {}))
+            evaluation=EvaluationConfig(**data.get('evaluation', {})),
+            cache=CacheConfig(**data['cache']) if data.get('cache') else CacheConfig()
         )

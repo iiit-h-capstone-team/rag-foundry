@@ -2,6 +2,7 @@ import logging
 
 import numpy as np
 
+from rag.cache.cache_manager import CacheManager
 from rag.config.config import RAGConfig
 from rag.config.enums import Mode
 from rag.factory.strategy_factory import StrategyFactory
@@ -54,6 +55,9 @@ class RAGPipeline:
 
         _configure_logging(self.config.mode)
         logger.debug("Initializing RAG pipeline in %s mode", self.config.mode.value)
+
+        # Centralized cache subsystem (chunk -> embedding -> index lineage).
+        self.cache_manager = CacheManager(self.config.cache)
 
         # Create strategies from config
         self._initialize_providers()
@@ -135,25 +139,65 @@ class RAGPipeline:
         )
 
     def build_index(self, documents: list[Document]):
-        """Build vector index from documents."""
+        """Build the vector index, reusing cached stages where possible.
+
+        Each stage (chunking, embedding, indexing) is keyed on the previous
+        stage's cache key plus its own config, so a change to any upstream stage
+        or config transparently invalidates everything downstream while leaving
+        existing caches untouched for other experiments.
+        """
         logger.info("Processing %d documents...", len(documents))
+        cache = self.cache_manager
 
-        all_chunks = []
-        for doc in documents:
-            chunks = self.chunker.chunk(doc)
-            all_chunks.extend(chunks)
+        datasource_hash = cache.datasource_hash(documents)
 
-        logger.info("Created %d chunks", len(all_chunks))
+        # 1. Chunking
+        chunk_key = cache.get_chunk_cache_key(datasource_hash, self.config.chunking)
+        chunks = cache.load_chunk_cache(chunk_key)
+        if chunks is not None:
+            logger.info("[Chunk Cache] HIT key=%s", chunk_key)
+        else:
+            logger.info("[Chunk Cache] MISS key=%s", chunk_key)
+            chunks = []
+            for doc in documents:
+                chunks.extend(self.chunker.chunk(doc))
+            cache.save_chunk_cache(
+                chunk_key, chunks, datasource_hash, self.config.chunking
+            )
+        logger.debug("Chunk cache key=%s (%d chunks)", chunk_key, len(chunks))
 
-        # Generate embeddings
-        texts = [chunk.text for chunk in all_chunks]
-        logger.info("Generating embeddings for %d chunks...", len(texts))
-        embeddings = self.embedder.embed(texts)
-        embeddings = np.array(embeddings).astype('float32')
+        # 2. Embedding
+        embedding_key = cache.get_embedding_cache_key(chunk_key, self.config.embedding)
+        embeddings = cache.load_embedding_cache(embedding_key)
+        if embeddings is not None:
+            logger.info("[Embedding Cache] HIT key=%s", embedding_key)
+        else:
+            logger.info("[Embedding Cache] MISS key=%s", embedding_key)
+            texts = [chunk.text for chunk in chunks]
+            embeddings = self.embedder.embed(texts)
+            embeddings = np.array(embeddings).astype('float32')
+            cache.save_embedding_cache(
+                embedding_key, embeddings, chunk_key, self.config.embedding
+            )
+        embeddings = np.asarray(embeddings).astype('float32')
+        logger.debug("Embedding cache key=%s (%d vectors)", embedding_key, len(embeddings))
 
-        # Add to vector store
-        self.vector_store.add(embeddings, all_chunks)
-        logger.info("Vector store ready with %d chunks", len(all_chunks))
+        # 3. Vector index (retrieval config is intentionally NOT part of the key)
+        index_key = cache.get_index_cache_key(embedding_key, self.config.vector_store)
+        cached_index = cache.load_index_cache(index_key)
+        if cached_index is not None:
+            logger.info("[Index Cache] HIT key=%s", index_key)
+            self.vector_store.index = cached_index
+            self.vector_store.chunks = list(chunks)
+        else:
+            logger.info("[Index Cache] MISS key=%s", index_key)
+            self.vector_store.add(embeddings, chunks)
+            cache.save_index_cache(
+                index_key, self.vector_store.index, embedding_key, self.config.vector_store
+            )
+        logger.debug("Index cache key=%s", index_key)
+
+        logger.info("Vector store ready with %d chunks", len(self.vector_store.chunks))
 
     def query(self, query: str) -> dict:
         """Run complete RAG query."""
@@ -164,14 +208,15 @@ class RAGPipeline:
         retrieved = self.retriever.retrieve(query)
         logger.debug("Retrieved %d documents", len(retrieved))
 
-        # Format for generation
-        retrieved_docs = [
-            {
-                "text": r["chunk"].text,
-                "metadata": r["chunk"].metadata
-            }
-            for r in retrieved
-        ]
+        # Format for generation. Every score the retriever attached
+        # (e.g. dense_score, rerank_score, score) is preserved alongside the
+        # text/metadata so downstream consumers (reporting) keep full detail.
+        retrieved_docs = []
+        for r in retrieved:
+            doc = {k: v for k, v in r.items() if k != "chunk"}
+            doc["text"] = r["chunk"].text
+            doc["metadata"] = r["chunk"].metadata
+            retrieved_docs.append(doc)
 
         # 2. Generate
         logger.debug("Generating response...")

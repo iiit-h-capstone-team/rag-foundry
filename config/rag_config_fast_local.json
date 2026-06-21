@@ -1,5 +1,9 @@
 {
   "mode": "dev",
+  "cache": {
+    "enabled": true,
+    "cache_dir": "./cache"
+  },
   "providers": {
     "groq": {
       "type": "groq",

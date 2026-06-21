@@ -3,6 +3,10 @@
 # providers read different environment variables (no hardcoded names).
 mode: prod
 
+cache:
+  enabled: true
+  cache_dir: ./cache
+
 providers:
   openai:
     type: openai
