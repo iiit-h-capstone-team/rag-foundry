@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from groq import Groq
+from groq import Groq, RateLimitError
 
 from providers.base.provider import BaseLLMProvider
 from providers.base.key_state import KeyState
@@ -66,6 +66,22 @@ class GroqProvider(BaseLLMProvider):
 
         key_state.total_429s += 1
 
+    @staticmethod
+    def _retry_after_seconds(exc: RateLimitError) -> int | None:
+        response = getattr(exc, "response", None)
+        headers = getattr(response, "headers", None)
+        if not headers:
+            return None
+
+        retry_after = headers.get("retry-after")
+        if retry_after is None:
+            return None
+
+        try:
+            return int(float(retry_after))
+        except (TypeError, ValueError):
+            return None
+
     def _get_next_available_key(self) -> KeyState:
 
         total_keys = len(self.keys)
@@ -126,18 +142,19 @@ class GroqProvider(BaseLLMProvider):
 
                 return response
 
-            except Exception as exc:
+            except RateLimitError as exc:
 
                 key_state.total_failures += 1
 
-                error_text = str(exc)
-
-                if "429" not in error_text:
-                    raise
-
                 self._mark_rate_limited(
-                    key_state=key_state
+                    key_state=key_state,
+                    retry_after_seconds=self._retry_after_seconds(exc)
                 )
+
+            except Exception:
+
+                key_state.total_failures += 1
+                raise
 
         raise AllKeysExhaustedException(
             "No available Groq API keys."
