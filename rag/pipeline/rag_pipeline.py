@@ -164,14 +164,15 @@ class RAGPipeline:
         retrieved = self.retriever.retrieve(query)
         logger.debug("Retrieved %d documents", len(retrieved))
 
-        # Format for generation
-        retrieved_docs = [
-            {
-                "text": r["chunk"].text,
-                "metadata": r["chunk"].metadata
-            }
-            for r in retrieved
-        ]
+        # Format for generation. Every score the retriever attached
+        # (e.g. dense_score, rerank_score, score) is preserved alongside the
+        # text/metadata so downstream consumers (reporting) keep full detail.
+        retrieved_docs = []
+        for r in retrieved:
+            doc = {k: v for k, v in r.items() if k != "chunk"}
+            doc["text"] = r["chunk"].text
+            doc["metadata"] = r["chunk"].metadata
+            retrieved_docs.append(doc)
 
         # 2. Generate
         logger.debug("Generating response...")
