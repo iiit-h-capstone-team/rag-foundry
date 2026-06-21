@@ -12,6 +12,8 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
+from rag.models.pipeline_run_result import PipelineRunResult
+
 
 @dataclass
 class QueryRecord:
@@ -28,14 +30,6 @@ class QueryRecord:
     predicted_scores: Dict[str, Any]
     ground_truth_scores: Dict[str, Any] = field(default_factory=dict)
 
-
-@dataclass
-class PipelineRunResult:
-    """All per-query records for one config, plus a human-readable summary."""
-
-    config_name: str
-    records: List[QueryRecord]
-    config_summary: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass

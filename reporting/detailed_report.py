@@ -16,11 +16,12 @@ from typing import Any, Dict, List
 import pandas as pd
 
 from rag.reporting.base import (
-    PipelineRunResult,
     Report,
     ReportSection,
     ReportStrategy,
 )
+
+from rag.models.pipeline_run_result import PipelineRunResult
 
 
 class DetailedQueryReportStrategy(ReportStrategy):
@@ -90,8 +91,8 @@ class DetailedQueryReportStrategy(ReportStrategy):
                 "answer": record.answer,
             }
             for metric in self.trace_metrics:
-                pred = self._to_float(record.predicted_scores.get(metric))
-                gt = self._to_float(record.ground_truth_scores.get(metric))
+                pred = self._to_float(record.metadata.predicted_scores.get(metric))
+                gt = self._to_float(record.metadata.ground_truth_scores.get(metric))
                 row[f"{metric}__pred"] = round(pred, self.round_to)
                 row[f"{metric}__gt"] = round(gt, self.round_to)
                 row[f"{metric}__deviation"] = round(pred - gt, self.round_to)
@@ -102,10 +103,10 @@ class DetailedQueryReportStrategy(ReportStrategy):
         rows = []
         for metric in self.trace_metrics:
             preds = pd.Series(
-                [self._to_float(r.predicted_scores.get(metric)) for r in run.records]
+                [self._to_float(r.metadata.predicted_scores.get(metric)) for r in run.records]
             )
             gts = pd.Series(
-                [self._to_float(r.ground_truth_scores.get(metric)) for r in run.records]
+                [self._to_float(r.metadata.ground_truth_scores.get(metric)) for r in run.records]
             )
             abs_error = (preds - gts).abs()
             rows.append(
@@ -126,10 +127,10 @@ class DetailedQueryReportStrategy(ReportStrategy):
     def build(self, runs: List[PipelineRunResult]) -> Report:
         sections = [
             ReportSection(
-                config_name=run.config_name,
+                config_name=run.config.name,
                 per_query=self._build_per_query_table(run),
                 summary=self._build_summary_table(run),
-                config_summary=run.config_summary,
+                config_summary=run.config.model_dump(),
             )
             for run in runs
         ]

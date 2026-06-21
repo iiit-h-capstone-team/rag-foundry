@@ -1,4 +1,5 @@
 mode: dev
+name: high-quality
 
 cache:
   enabled: true

@@ -2,6 +2,7 @@
 # resolution: each provider declares its own `api_key_env`, so different
 # providers read different environment variables (no hardcoded names).
 mode: prod
+name: openai-production
 
 cache:
   enabled: true

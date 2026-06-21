@@ -308,6 +308,8 @@ class RAGConfig:
 
     mode: Mode = Mode.DEV
 
+    name: str = "default"
+
     cache: CacheConfig = field(default_factory=CacheConfig)
 
     def __post_init__(self):
@@ -330,6 +332,7 @@ class RAGConfig:
     def to_dict(self) -> Dict[str, Any]:
         """Convert config to dictionary."""
         return {
+            'name': self.name,
             'mode': self.mode.value,
             'providers': {
                 name: self._section_to_dict(provider)
@@ -352,6 +355,7 @@ class RAGConfig:
     def from_dict(cls, data: Dict[str, Any]) -> 'RAGConfig':
         """Create config from dictionary."""
         return cls(
+            name=data.get('name', 'default'),
             mode=data.get('mode', Mode.DEV),
             providers={
                 name: ProviderConfig(**provider_data)
@@ -369,3 +373,8 @@ class RAGConfig:
             evaluation=EvaluationConfig(**data.get('evaluation', {})),
             cache=CacheConfig(**data['cache']) if data.get('cache') else CacheConfig()
         )
+
+    def model_dump(self) -> Dict[str, Any]:
+        """Convert config to dictionary."""
+        return self.to_dict()
+
