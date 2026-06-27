@@ -1,0 +1,27 @@
+# Core RAG Framework
+sentence-transformers>=2.2.0
+faiss-cpu>=1.7.4
+numpy>=1.24.0
+pyyaml>=6.0
+
+# OpenAI
+openai>=1.0.0
+
+# Ollama
+ollama>=0.1.0
+
+# Cohere
+cohere>=5.0.0
+
+# Voyage AI
+voyageai>=0.2.0
+
+# HuggingFace Inference
+requests>=2.31.0
+
+# Testing
+pytest>=7.4.0
+pytest-mock>=3.12.0
+
+# Existing dependencies (if any)
+# Add any other existing project dependencies here

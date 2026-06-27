@@ -18,11 +18,17 @@ class ChunkingType(str, Enum):
     SENTENCE = "sentence"
     FIXED_WINDOW = "fixed_window"
     TOKEN = "token"
+    SEMANTIC = "semantic"
 
 
 class EmbeddingType(str, Enum):
     SENTENCE_TRANSFORMER = "sentence_transformer"
     OPENAI = "openai"
+    OLLAMA = "ollama"
+    COHERE = "cohere"
+    VOYAGE = "voyage"
+    HUGGINGFACE = "huggingface"
+    MEDCPT = "medcpt"
 
 
 class RetrievalType(str, Enum):
@@ -33,6 +39,10 @@ class RetrievalType(str, Enum):
 
 class RerankerType(str, Enum):
     CROSS_ENCODER = "cross_encoder"
+    COHERE = "cohere"
+    VOYAGE = "voyage"
+    JINA = "jina"
+    MIXEDBREAD = "mixedbread"
 
 
 class VectorStoreType(str, Enum):

@@ -70,11 +70,21 @@ class TokenChunkingConfig:
     max_tokens: int = 200
     overlap_tokens: int = 20
 
+@dataclass
+class SemanticChunkingConfig:
+    max_words: int = 256
+    similarity_threshold: float = 0.8
+    overlap_sentences: int = 1
+    similarity_window: int = 5
+
+    embedding: EmbeddingConfig
+
 
 _CHUNKING_CONFIGS = {
     ChunkingType.SENTENCE: SentenceChunkingConfig,
     ChunkingType.FIXED_WINDOW: FixedWindowChunkingConfig,
     ChunkingType.TOKEN: TokenChunkingConfig,
+    ChunkingType.SEMANTIC: SemanticChunkingConfig,
 }
 
 
@@ -108,9 +118,58 @@ class OpenAIEmbeddingConfig:
     dimension: int = 1536
 
 
+@dataclass
+class OllamaEmbeddingConfig:
+    """Tunables for the Ollama embedding strategy."""
+    model_name: Optional[str] = None
+    model: Optional[str] = None
+    dimension: int = 768
+    base_url: str = "http://localhost:11434"
+
+
+@dataclass
+class CohereEmbeddingConfig:
+    """Tunables for the Cohere embedding strategy."""
+    model_name: Optional[str] = None
+    model: Optional[str] = None
+    dimension: int = 1024
+    input_type: str = "search_document"
+
+
+@dataclass
+class VoyageEmbeddingConfig:
+    """Tunables for the Voyage AI embedding strategy."""
+    model_name: Optional[str] = None
+    model: Optional[str] = None
+    dimension: int = 1024
+    input_type: Optional[str] = None
+
+
+@dataclass
+class HuggingFaceEmbeddingConfig:
+    """Tunables for the HuggingFace Inference embedding strategy."""
+    model_name: Optional[str] = None
+    model: Optional[str] = None
+    dimension: int = 768
+    api_url: Optional[str] = None
+
+
+@dataclass
+class MedCPTEmbeddingConfig:
+    """Tunables for the MedCPT embedding strategy (dual encoder)."""
+    query_model_name: str = "ncbi/MedCPT-Query-Encoder"
+    article_model_name: str = "ncbi/MedCPT-Article-Encoder"
+    dimension: int = 768
+
+
 _EMBEDDING_CONFIGS = {
     EmbeddingType.SENTENCE_TRANSFORMER: SentenceTransformerEmbeddingConfig,
     EmbeddingType.OPENAI: OpenAIEmbeddingConfig,
+    EmbeddingType.OLLAMA: OllamaEmbeddingConfig,
+    EmbeddingType.COHERE: CohereEmbeddingConfig,
+    EmbeddingType.VOYAGE: VoyageEmbeddingConfig,
+    EmbeddingType.HUGGINGFACE: HuggingFaceEmbeddingConfig,
+    EmbeddingType.MEDCPT: MedCPTEmbeddingConfig,
 }
 
 
@@ -202,8 +261,44 @@ class CrossEncoderRerankerConfig:
     model_name: Optional[str] = None
 
 
+@dataclass
+class CohereRerankerConfig:
+    """Tunables for the Cohere reranker."""
+    model_name: Optional[str] = None
+    model: Optional[str] = None
+    top_n: int = 10
+
+
+@dataclass
+class VoyageRerankerConfig:
+    """Tunables for the Voyage AI reranker."""
+    model_name: Optional[str] = None
+    model: Optional[str] = None
+    top_k: int = 10
+
+
+@dataclass
+class JinaRerankerConfig:
+    """Tunables for the Jina AI reranker."""
+    model_name: Optional[str] = None
+    model: Optional[str] = None
+    top_n: int = 10
+
+
+@dataclass
+class MixedBreadRerankerConfig:
+    """Tunables for the MixedBread AI reranker."""
+    model_name: Optional[str] = None
+    model: Optional[str] = None
+    top_n: int = 10
+
+
 _RERANKER_CONFIGS = {
     RerankerType.CROSS_ENCODER: CrossEncoderRerankerConfig,
+    RerankerType.COHERE: CohereRerankerConfig,
+    RerankerType.VOYAGE: VoyageRerankerConfig,
+    RerankerType.JINA: JinaRerankerConfig,
+    RerankerType.MIXEDBREAD: MixedBreadRerankerConfig,
 }
 
 

@@ -23,12 +23,21 @@ from rag.chunking.token_chunking import TokenChunkingStrategy
 
 from rag.embedding.sentence_transformer_embedding import SentenceTransformerEmbeddingStrategy
 from rag.embedding.openai_embedding import OpenAIEmbeddingStrategy
+from rag.embedding.ollama_embedding import OllamaEmbeddingStrategy
+from rag.embedding.cohere_embedding import CohereEmbeddingStrategy
+from rag.embedding.voyage_embedding import VoyageEmbeddingStrategy
+from rag.embedding.huggingface_embedding import HuggingFaceEmbeddingStrategy
+from rag.embedding.medcpt_embedding import MedCPTEmbeddingStrategy
 
 from rag.retrieval.dense_rerank import DenseRerankRetrievalStrategy
 from rag.retrieval.dense_retrieval import DenseRetrievalStrategy
 from rag.retrieval.hybrid_retrieval import HybridRetrievalStrategy
 
 from rag.reranking.cross_encoder_reranker import CrossEncoderRerankerStrategy
+from rag.reranking.cohere_reranker import CohereRerankerStrategy
+from rag.reranking.voyage_reranker import VoyageRerankerStrategy
+from rag.reranking.jina_reranker import JinaRerankerStrategy
+from rag.reranking.mixedbread_reranker import MixedBreadRerankerStrategy
 
 from rag.generation.default_generation import DefaultGenerationStrategy
 
@@ -68,6 +77,21 @@ class StrategyFactory:
             ),
             EmbeddingType.OPENAI: lambda: OpenAIEmbeddingStrategy(
                 config=config.config
+            ),
+            EmbeddingType.OLLAMA: lambda: OllamaEmbeddingStrategy(
+                config=config.config
+            ),
+            EmbeddingType.COHERE: lambda: CohereEmbeddingStrategy(
+                config=config.config
+            ),
+            EmbeddingType.VOYAGE: lambda: VoyageEmbeddingStrategy(
+                config=config.config
+            ),
+            EmbeddingType.HUGGINGFACE: lambda: HuggingFaceEmbeddingStrategy(
+                config=config.config
+            ),
+            EmbeddingType.MEDCPT: lambda: MedCPTEmbeddingStrategy(
+                config=config.config
             )
         }
         return strategies[config.type]()
@@ -79,6 +103,18 @@ class StrategyFactory:
     ):
         strategies = {
             RerankerType.CROSS_ENCODER: lambda: CrossEncoderRerankerStrategy(
+                config=config.config
+            ),
+            RerankerType.COHERE: lambda: CohereRerankerStrategy(
+                config=config.config
+            ),
+            RerankerType.VOYAGE: lambda: VoyageRerankerStrategy(
+                config=config.config
+            ),
+            RerankerType.JINA: lambda: JinaRerankerStrategy(
+                config=config.config
+            ),
+            RerankerType.MIXEDBREAD: lambda: MixedBreadRerankerStrategy(
                 config=config.config
             )
         }
