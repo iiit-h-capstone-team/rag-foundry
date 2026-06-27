@@ -1,5 +1,6 @@
 {
   "mode": "dev",
+  "name": "fast-local",
   "cache": {
     "enabled": true,
     "cache_dir": "./cache"

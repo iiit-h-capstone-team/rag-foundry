@@ -7,7 +7,8 @@ marked as the default and used when ``generate`` is called without a name.
 
 from typing import Dict, List, Optional, Union
 
-from rag.reporting.base import PipelineRunResult, Report, ReportStrategy
+from reporting.base import Report, ReportStrategy
+from rag.models.pipeline_run_result import PipelineRunResult
 
 
 class ReportGenerator:

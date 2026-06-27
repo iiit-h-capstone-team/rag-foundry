@@ -40,3 +40,5 @@ data/
 # Cache output dir (default cache.cache_dir). Anchored to repo root so the
 # rag/cache/ source package is NOT ignored.
 /cache/
+
+/reports/

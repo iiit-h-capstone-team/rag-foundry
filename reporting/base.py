@@ -9,34 +9,12 @@ runs into a presentable :class:`Report`.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
+from pathlib import Path
+import json
 
 import pandas as pd
 
-
-@dataclass
-class QueryRecord:
-    """Everything produced for a single query by a single pipeline.
-
-    ``predicted_scores`` holds the TRACe scores returned by the pipeline's
-    evaluator; ``ground_truth_scores`` holds the reference scores that ship with
-    the dataset for the same query.
-    """
-
-    query: str
-    retrieved_docs: List[Dict[str, Any]]
-    answer: str
-    predicted_scores: Dict[str, Any]
-    ground_truth_scores: Dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class PipelineRunResult:
-    """All per-query records for one config, plus a human-readable summary."""
-
-    config_name: str
-    records: List[QueryRecord]
-    config_summary: Dict[str, Any] = field(default_factory=dict)
-
+from rag.models.pipeline_run_result import PipelineRunResult
 
 @dataclass
 class ReportSection:
@@ -61,6 +39,50 @@ class Report:
             if section.config_name == config_name:
                 return section
         return None
+
+    def save_json(self, path: str | Path) -> None:
+        """Save the report as a JSON file."""
+
+        data = {
+            "title": self.title,
+            "strategy_name": self.strategy_name,
+            "sections": [
+                {
+                    "config_name": section.config_name,
+                    "config_summary": section.config_summary,
+                    "per_query": section.per_query.to_dict(orient="records"),
+                    "summary": section.summary.to_dict(orient="records"),
+                }
+                for section in self.sections
+            ],
+        }
+
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+    @classmethod
+    def load_json(cls, path: str | Path) -> "Report":
+        """Load a report previously saved with ``save_json``."""
+
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        sections = [
+            ReportSection(
+                config_name=section["config_name"],
+                config_summary=section.get("config_summary", {}),
+                per_query=pd.DataFrame(section["per_query"]),
+                summary=pd.DataFrame(section["summary"]),
+            )
+            for section in data["sections"]
+        ]
+
+        return cls(
+            title=data["title"],
+            strategy_name=data["strategy_name"],
+            sections=sections,
+        )
 
     def display(self) -> None:
         """Render the report inside a notebook (falls back to ``print``)."""
