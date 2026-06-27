@@ -1,5 +1,6 @@
 from rag.config.config import SentenceTransformerEmbeddingConfig
 from rag.embedding.base import EmbeddingStrategy
+from rag.runtime.model_cache import get_sentence_transformer
 
 
 class SentenceTransformerEmbeddingStrategy(EmbeddingStrategy):
@@ -17,8 +18,7 @@ class SentenceTransformerEmbeddingStrategy(EmbeddingStrategy):
                 "'model_name' (or 'model') in the embedding config."
             )
 
-        from sentence_transformers import SentenceTransformer
-        self.model = SentenceTransformer(model_name)
+        self.model = get_sentence_transformer(model_name)
 
     def embed(self, texts):
         if isinstance(texts, str):

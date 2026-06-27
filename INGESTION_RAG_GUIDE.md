@@ -20,7 +20,7 @@ The system is divided into two distinct layers with clear separation of concerns
 
 ### Ingestion Layer (`ingestion/`)
 Handles data loading, parsing, and preprocessing. Responsible for:
-- Loading datasets from various sources (RAGBench, local files, APIs)
+- Loading datasets from various sources (HuggingFace, local files, APIs)
 - Parsing documents from different formats (title/passage, markdown, JSON, PDF)
 - Transforming raw data into canonical `Document` objects
 
@@ -54,11 +54,11 @@ Handles retrieval-augmented generation. Responsible for:
 ### Data Flow
 
 ```
-Dataset Source (RAGBench, Local Files, APIs)
+Dataset Source (HuggingFace, Local Files, APIs)
     ↓
 Ingestion Layer
     ├── DatasetLoader (loaders/)
-    │   └── RAGBenchLoader, LocalFileLoader, etc.
+    │   └── HuggingFaceLoader, LocalFileLoader, etc.
     ├── DataProcessor (processors/)
     │   └── Orchestrates parsing workflow
     └── ParsingStrategy (parsers/)
@@ -92,7 +92,7 @@ Query Results and Responses
 ingestion/
 ├── loaders/
 │   ├── base.py              # DatasetLoader ABC, DatasetLoadingConfig
-│   └── ragbench_loader.py   # RAGBench-specific loaders
+│   └── huggingface_loader.py # Generic HuggingFace loader
 ├── parsers/
 │   ├── base.py              # ParsingStrategy ABC
 │   ├── title_passage_parser.py  # Title/Passage format parser
@@ -128,46 +128,38 @@ class DatasetLoader(ABC):
     def info() -> Dict                      # Dataset metadata
 ```
 
-#### RAGBench Loaders
+#### HuggingFace Loader
 
-**RAGBenchLoader** (Generic)
+**HuggingFaceLoader** (Generic)
 ```python
-from ingestion import RAGBenchLoader, DatasetLoadingConfig
+from ingestion import HuggingFaceLoader, DatasetLoadingConfig
 
-loader = RAGBenchLoader(
-    dataset_name="covidqa",
+# Load any HuggingFace dataset
+loader = HuggingFaceLoader(
+    dataset_name="imdb",
     split="test",
     config=DatasetLoadingConfig(limit=100),
     hf_token="your_hf_token"  # Optional
 )
 
 raw_data = loader.load()
-```
 
-**Specific Loaders** (Pre-configured)
-```python
-from ingestion import (
-    RAGBenchCovidQALoader,
-    RAGBenchFeverousLoader,
-    RAGBenchHotpotQALoader
+# Load dataset with subset/config
+loader = HuggingFaceLoader(
+    dataset_name="galileo-ai/ragbench",
+    subset="covidqa",
+    split="test",
+    config=DatasetLoadingConfig(limit=100)
 )
 
-# CovidQA
-loader = RAGBenchCovidQALoader(split="test", limit=100)
-
-# FEVEROUS
-loader = RAGBenchFeverousLoader(split="test", limit=100)
-
-# HotpotQA
-loader = RAGBenchHotpotQALoader(split="test", limit=100)
-
-# Load data
 raw_data = loader.load()
 
 # Get dataset info
 info = loader.info()
 print(f"Source: {info['source']}")
 print(f"Dataset: {info['dataset_name']}")
+print(f"Subset: {info['subset']}")
+print(f"Split: {info['split']}")
 print(f"Samples: {info['num_samples']}")
 
 # Load single sample
@@ -611,14 +603,19 @@ groq_client = Groq(api_key=GROQ_API_KEY)
 # STEP 1: Ingestion - Load and Parse Data
 # ============================================================================
 from ingestion import (
-    RAGBenchCovidQALoader,
+    HuggingFaceLoader,
     ParserFactory,
     ParserType,
     DataProcessor
 )
 
 # Load dataset
-loader = RAGBenchCovidQALoader(split="test", limit=100)
+loader = HuggingFaceLoader(
+    dataset_name="galileo-ai/ragbench",
+    subset="covidqa",
+    split="test",
+    config=DatasetLoadingConfig(limit=100)
+)
 raw_data = loader.load()
 print(f"Loaded {len(raw_data)} samples")
 
@@ -878,14 +875,19 @@ rag_docs = DataProcessor.convert_to_rag_documents(parsed_docs)
 
 ```python
 from ingestion import (
-    RAGBenchCovidQALoader,
+    HuggingFaceLoader,
     ParserFactory,
     ParserType,
     DataProcessor
 )
 
 # Load data
-loader = RAGBenchCovidQALoader(split="test", limit=100)
+loader = HuggingFaceLoader(
+    dataset_name="galileo-ai/ragbench",
+    subset="covidqa",
+    split="test",
+    config=DatasetLoadingConfig(limit=100)
+)
 raw_data = loader.load()
 
 # Create parser strategy

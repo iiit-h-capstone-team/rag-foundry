@@ -34,6 +34,17 @@ class Report:
     strategy_name: str
     sections: List[ReportSection]
 
+    @property
+    def config_name(self) -> str:
+        """Get the config name from the first section.
+        
+        Convenience property for single-section reports (typical case).
+        Raises ValueError if report has no sections.
+        """
+        if not self.sections:
+            raise ValueError("Report has no sections")
+        return self.sections[0].config_name
+
     def section_for(self, config_name: str) -> Optional[ReportSection]:
         for section in self.sections:
             if section.config_name == config_name:

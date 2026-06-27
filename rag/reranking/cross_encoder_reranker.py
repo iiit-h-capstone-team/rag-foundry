@@ -1,5 +1,6 @@
 from rag.config.config import CrossEncoderRerankerConfig
 from rag.reranking.base import RerankerStrategy
+from rag.runtime.model_cache import get_cross_encoder
 
 
 class CrossEncoderRerankerStrategy(RerankerStrategy):
@@ -16,8 +17,7 @@ class CrossEncoderRerankerStrategy(RerankerStrategy):
                 "in the reranker config."
             )
 
-        from sentence_transformers import CrossEncoder
-        self.model = CrossEncoder(self.config.model_name)
+        self.model =  get_cross_encoder(self.config.model_name)
 
     def rerank(
         self,
