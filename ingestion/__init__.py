@@ -35,12 +35,7 @@ from .processors.data_processor import DataProcessor
 # Loaders (may have external dependencies, imported conditionally)
 try:
     from .loaders.base import DatasetLoader, DatasetLoadingConfig
-    from .loaders.ragbench_loader import (
-        RAGBenchLoader,
-        RAGBenchCovidQALoader,
-        RAGBenchFeverousLoader,
-        RAGBenchHotpotQALoader
-    )
+    from .loaders.huggingface_loader import HuggingFaceLoader
     _loaders_available = True
 except ImportError:
     # Loaders require external dependencies (e.g., datasets)
@@ -48,10 +43,7 @@ except ImportError:
     _loaders_available = False
     DatasetLoader = None
     DatasetLoadingConfig = None
-    RAGBenchLoader = None
-    RAGBenchCovidQALoader = None
-    RAGBenchFeverousLoader = None
-    RAGBenchHotpotQALoader = None
+    HuggingFaceLoader = None
 
 __all__ = [
     # Parsers
@@ -68,8 +60,5 @@ if _loaders_available:
     __all__.extend([
         'DatasetLoader',
         'DatasetLoadingConfig',
-        'RAGBenchLoader',
-        'RAGBenchCovidQALoader',
-        'RAGBenchFeverousLoader',
-        'RAGBenchHotpotQALoader',
+        'HuggingFaceLoader',
     ])

@@ -11,6 +11,7 @@ from reporting.base import (
 )
 from reporting.detailed_report import DetailedQueryReportStrategy
 from reporting.report_generator import ReportGenerator
+from reporting.strategy_factory import ReportStrategyFactory
 
 __all__ = [
     "Report",
@@ -18,4 +19,5 @@ __all__ = [
     "ReportStrategy",
     "DetailedQueryReportStrategy",
     "ReportGenerator",
+    "ReportStrategyFactory",
 ]

@@ -1,0 +1,26 @@
+config_dir: config
+
+cache_dir: cache
+
+report_dir: reports
+
+num_queries: 2
+
+parallel: true
+
+max_workers: 4
+
+# Data loading configuration
+data_loader:
+  type: huggingface
+  config:
+    dataset_name: galileo-ai/ragbench
+    subset: covidqa
+    split: test
+    limit: 100
+
+# Data parser configuration
+data_parser: title_passage
+
+# Report configuration
+report_strategy: detailed_query

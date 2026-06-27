@@ -43,7 +43,7 @@ class DatasetLoader(ABC):
     by the DataProcessor and parsed by a ParsingStrategy.
     
     Example implementations:
-    - RAGBenchLoader: Loads datasets from galileo-ai/ragbench on HuggingFace
+    - HuggingFaceLoader: Loads datasets from HuggingFace Hub
     - LocalFileLoader: Loads data from local files (JSON, CSV, etc.)
     - DatabaseLoader: Loads data from SQL/NoSQL databases
     - APILoader: Loads data from REST APIs

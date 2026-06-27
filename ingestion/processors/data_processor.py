@@ -33,12 +33,16 @@ class DataProcessor:
     the flow from raw samples to parsed documents.
     
     Example:
-        >>> from ingestion.loaders.ragbench_loader import RAGBenchCovidQALoader
+        >>> from ingestion import HuggingFaceLoader
         >>> from ingestion.parsers.strategy_factory import ParserFactory, ParserType
         >>> from ingestion.processors.data_processor import DataProcessor
         >>> 
         >>> # Load raw data
-        >>> loader = RAGBenchCovidQALoader()
+        >>> loader = HuggingFaceLoader(
+        ...     dataset_name="galileo-ai/ragbench",
+        ...     subset="covidqa",
+        ...     split="test"
+        ... )
         >>> raw_data = loader.load()
         >>> 
         >>> # Create parser strategy
