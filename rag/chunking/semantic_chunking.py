@@ -1,23 +1,42 @@
-from rag.config.config import SemanticChunkingConfig
-from rag.factory.strategy_factory import StrategyFactory
-from rag.models import Document, Chunk
 import numpy as np
+
+from rag.chunking.base import ChunkingStrategy
+from rag.config.config import SemanticChunkingConfig
+from rag.embedding.embedding_factory import EmbeddingFactory
+from rag.models.chunk import Chunk
+from rag.models.document import Document
 
 
 class SemanticChunkingStrategy(ChunkingStrategy):
 
     def __init__(self, config: SemanticChunkingConfig):
         self.config = config
-        self.embedding = StrategyFactory.create_embedding(
+        self.embedding = EmbeddingFactory.create_embedder(
             config.embedding
         )
+
+    @property
+    def max_words(self) -> int:
+        return self.config.max_words
+
+    @property
+    def similarity_threshold(self) -> float:
+        return self.config.similarity_threshold
+
+    @property
+    def similarity_window(self) -> int:
+        return self.config.similarity_window
+
+    @property
+    def overlap_sentences(self) -> int:
+        return self.config.overlap_sentences
 
     def chunk(
         self,
         document: Document
     ) -> list[Chunk]:
 
-        sentences = self.split_sentences(
+        sentences = ChunkingStrategy.split_sentences(
             document.content
         )
 
@@ -25,8 +44,18 @@ class SemanticChunkingStrategy(ChunkingStrategy):
             return []
 
         embeddings = np.asarray(
-            self.embedding.embed(sentences)
+            self.embedding.embed(sentences),
+            dtype=np.float32,
         )
+
+        # Normalize embeddings once so cosine similarity
+        # becomes a simple dot product.
+        norms = np.linalg.norm(
+            embeddings,
+            axis=1,
+            keepdims=True,
+        )
+        embeddings /= np.maximum(norms, 1e-12)
 
         chunk_texts = []
         current_chunk = []
@@ -39,11 +68,13 @@ class SemanticChunkingStrategy(ChunkingStrategy):
             sentence = sentences[i]
             sentence_words = len(sentence.split())
 
-            # Oversized single sentence.
+            # Handle oversized sentence.
             if sentence_words > self.max_words:
 
                 if current_chunk:
-                    chunk_texts.append(" ".join(current_chunk))
+                    chunk_texts.append(
+                        " ".join(current_chunk)
+                    )
                     current_chunk = []
                     current_words = 0
 
@@ -55,29 +86,35 @@ class SemanticChunkingStrategy(ChunkingStrategy):
 
             if current_chunk:
 
-                start = max(
-                    0,
-                    i - self.similarity_window
-                )
-
-                reference_embedding = embeddings[start:i].mean(
-                    axis=0
-                )
-                reference_embedding /= np.linalg.norm(reference_embedding)
-
-                similarity = np.dot(
-                    reference_embedding,
-                    embeddings[i]
-                )
-
-                if similarity < self.similarity_threshold:
+                # Split immediately if adding this sentence
+                # exceeds the configured chunk size.
+                if current_words + sentence_words > self.max_words:
                     should_split = True
 
-                elif (
-                    current_words + sentence_words
-                    > self.max_words
-                ):
-                    should_split = True
+                else:
+                    start = max(
+                        0,
+                        i - self.similarity_window
+                    )
+
+                    reference_embedding = embeddings[
+                        start:i
+                    ].mean(axis=0)
+
+                    norm = np.linalg.norm(
+                        reference_embedding
+                    )
+
+                    if norm > 0:
+                        reference_embedding /= norm
+
+                    similarity = np.dot(
+                        reference_embedding,
+                        embeddings[i],
+                    )
+
+                    if similarity < self.similarity_threshold:
+                        should_split = True
 
             if should_split:
 
@@ -116,7 +153,7 @@ class SemanticChunkingStrategy(ChunkingStrategy):
                     "chunk_type": "semantic",
                     "word_count": len(text.split()),
                     "title": document.title,
-                }
+                },
             )
             for text in chunk_texts
         ]

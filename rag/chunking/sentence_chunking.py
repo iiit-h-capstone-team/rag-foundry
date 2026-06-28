@@ -22,27 +22,13 @@ class SentenceChunkingStrategy(
     @property
     def overlap_sentences(self) -> int:
         return self.config.overlap_sentences
-
-    def split_sentences(
-        self,
-        text: str
-    ):
-
-        return [
-            sentence.strip()
-            for sentence in re.split(
-                r"(?<=[.!?])\s+",
-                text
-            )
-            if sentence.strip()
-        ]
     
     def chunk(
         self,
         document: Document
     ) -> list[Chunk]:
 
-        sentences = self.split_sentences(
+        sentences = ChunkingStrategy.split_sentences(
             document.content
         )
 

@@ -31,9 +31,11 @@ vector_store:
     dimension: 1024
 
 retrieval:
-  type: dense
-  config:
-    top_k: 5
+  search:
+    searches:
+      - type: dense
+        config:
+          top_k: 5
 
 generation:
   strategy: default

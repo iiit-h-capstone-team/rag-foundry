@@ -30,16 +30,16 @@ vector_store:
     dimension: 1024
 
 retrieval:
-  type: dense_rerank
-  config:
-    top_k: 5
-    initial_k: 20
-
-reranker:
-  type: jina
-  config:
-    model_name: jina-reranker-v2-base
-    top_n: 10
+  search:
+    searches:
+      - type: dense
+        config:
+          top_k: 20
+  rerank:
+    type: jina
+    config:
+      model_name: jina-reranker-v2-base
+      top_n: 10
 
 generation:
   strategy: default

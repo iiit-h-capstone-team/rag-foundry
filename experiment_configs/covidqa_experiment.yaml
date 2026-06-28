@@ -4,9 +4,9 @@ cache_dir: cache
 
 report_dir: reports
 
-num_queries: 2
+num_queries: 246
 
-parallel: true
+parallel: false
 
 max_workers: 4
 
@@ -17,7 +17,7 @@ data_loader:
     dataset_name: galileo-ai/ragbench
     subset: covidqa
     split: test
-    limit: 100
+    limit: 246
 
 # Data parser configuration
 data_parser: title_passage

@@ -3,11 +3,16 @@ import logging
 import numpy as np
 
 from rag.cache.cache_manager import CacheManager
+from rag.chunking.chunking_factory import ChunkingFactory
 from rag.config.config import RAGConfig
 from rag.config.enums import Mode
-from rag.factory.strategy_factory import StrategyFactory
+from rag.embedding.embedding_factory import EmbeddingFactory
+from rag.evaluation.evaluator_factory import EvaluatorFactory
+from rag.generation.generator_factory import GeneratorFactory
 from rag.models.document import Document
 from providers.provider_manager import ProviderManager
+from rag.retrieval.retrieval_factory import RetrievalFactory
+from rag.vectorstores.vectorstore_factory import VectorStoreFactory
 
 logger = logging.getLogger(__name__)
 
@@ -84,33 +89,25 @@ class RAGPipeline:
         """Initialize all strategies from config."""
 
         # Chunking
-        self.chunker = StrategyFactory.create_chunker(
+        self.chunker = ChunkingFactory.create_chunker(
             self.config.chunking
         )
 
         # Embedding
-        self.embedder = StrategyFactory.create_embedder(
+        self.embedder = EmbeddingFactory.create_embedder(
             self.config.embedding
         )
 
         # Vector Store
-        self.vector_store = StrategyFactory.create_vectorstore(
+        self.vector_store = VectorStoreFactory.create_vectorstore(
             self.config.vector_store
         )
 
-        # Reranking (only used by rerank-based retrievers).
-        self.reranker = (
-            StrategyFactory.create_reranker(self.config.reranker)
-            if self.config.reranker
-            else None
-        )
-
-        # Retrieval
-        self.retriever = StrategyFactory.create_retriever(
+        # Retrieval pipeline
+        self.retriever = RetrievalFactory.create_retrieval_pipeline(
             config=self.config.retrieval,
             embedder=self.embedder,
             vector_store=self.vector_store,
-            reranker=self.reranker,
             bm25_store=None,
         )
 
@@ -122,7 +119,7 @@ class RAGPipeline:
             )
         )
 
-        self.generator = StrategyFactory.create_generator(
+        self.generator = GeneratorFactory.create_generator(
             config=self.config.generation,
             provider=generation_provider
         )
@@ -133,7 +130,7 @@ class RAGPipeline:
                 self.config.evaluation.provider
             )
         )
-        self.evaluator = StrategyFactory.create_evaluator(
+        self.evaluator = EvaluatorFactory.create_evaluator(
             config=self.config.evaluation,
             provider=evaluation_provider
         )

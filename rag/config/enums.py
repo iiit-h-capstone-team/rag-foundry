@@ -31,10 +31,19 @@ class EmbeddingType(str, Enum):
     MEDCPT = "medcpt"
 
 
-class RetrievalType(str, Enum):
-    DENSE_RERANK = "dense_rerank"
+class QueryTransformType(str, Enum):
+    NOOP = "noop"
+
+
+class SearchType(str, Enum):
     DENSE = "dense"
-    HYBRID = "hybrid"
+    SPARSE = "sparse"
+
+
+class FusionType(str, Enum):
+    NOOP = "noop"
+    RRF = "rrf"
+    WEIGHTED_SUM = "weighted_sum"
 
 
 class RerankerType(str, Enum):

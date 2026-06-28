@@ -20,9 +20,12 @@ from rag.config.config import (
     VectorStoreConfig,
     FaissVectorStoreConfig,
     RetrievalConfig,
-    DenseRetrievalConfig,
-    DenseRerankRetrievalConfig,
-    HybridRetrievalConfig,
+    SearchPipelineConfig,
+    SearchStrategyConfig,
+    DenseSearchConfig,
+    SparseSearchConfig,
+    FusionConfig,
+    WeightedSumFusionConfig,
     RerankerConfig,
     CrossEncoderRerankerConfig,
     GenerationConfig,
@@ -35,7 +38,8 @@ from rag.config.enums import (
     ChunkingType,
     EmbeddingType,
     VectorStoreType,
-    RetrievalType,
+    SearchType,
+    FusionType,
     RerankerType,
     GenerationType,
     EvaluationType
@@ -51,6 +55,19 @@ def _groq_provider() -> dict:
             params={"cooldown_seconds": 60}
         )
     }
+
+
+def _dense_search(top_k: int = 5) -> RetrievalConfig:
+    return RetrievalConfig(
+        search=SearchPipelineConfig(
+            searches=[
+                SearchStrategyConfig(
+                    type=SearchType.DENSE,
+                    config=DenseSearchConfig(top_k=top_k),
+                )
+            ]
+        )
+    )
 
 
 # Configuration 1: Fast & Local embeddings, Groq generation/evaluation
@@ -74,10 +91,7 @@ config_fast_local = RAGConfig(
         type=VectorStoreType.FAISS,
         config=FaissVectorStoreConfig(dimension=384)
     ),
-    retrieval=RetrievalConfig(
-        type=RetrievalType.DENSE,
-        config=DenseRetrievalConfig(top_k=5)
-    ),
+    retrieval=_dense_search(top_k=5),
     generation=GenerationConfig(
         strategy=GenerationType.DEFAULT,
         provider='groq',
@@ -117,17 +131,21 @@ config_high_quality = RAGConfig(
         config=FaissVectorStoreConfig(dimension=1024)
     ),
     retrieval=RetrievalConfig(
-        type=RetrievalType.DENSE_RERANK,
-        config=DenseRerankRetrievalConfig(
-            top_k=5,
-            initial_k=20
-        )
-    ),
-    reranker=RerankerConfig(
-        type=RerankerType.CROSS_ENCODER,
-        config=CrossEncoderRerankerConfig(
-            model_name='BAAI/bge-reranker-v2-m3'
-        )
+        search=SearchPipelineConfig(
+            searches=[
+                SearchStrategyConfig(
+                    type=SearchType.DENSE,
+                    config=DenseSearchConfig(top_k=20),
+                )
+            ]
+        ),
+        rerank=RerankerConfig(
+            type=RerankerType.CROSS_ENCODER,
+            config=CrossEncoderRerankerConfig(
+                model_name='BAAI/bge-reranker-v2-m3',
+                top_k=5,
+            )
+        ),
     ),
     generation=GenerationConfig(
         strategy=GenerationType.DEFAULT,
@@ -179,13 +197,25 @@ config_openai_production = RAGConfig(
         config=FaissVectorStoreConfig(dimension=3072)
     ),
     retrieval=RetrievalConfig(
-        type=RetrievalType.HYBRID,
-        config=HybridRetrievalConfig(
-            top_k=5,
-            initial_k=25,
-            dense_weight=0.7,
-            sparse_weight=0.3
-        )
+        search=SearchPipelineConfig(
+            searches=[
+                SearchStrategyConfig(
+                    type=SearchType.DENSE,
+                    config=DenseSearchConfig(top_k=40),
+                ),
+                SearchStrategyConfig(
+                    type=SearchType.SPARSE,
+                    config=SparseSearchConfig(top_k=40),
+                ),
+            ]
+        ),
+        fusion=FusionConfig(
+            type=FusionType.WEIGHTED_SUM,
+            config=WeightedSumFusionConfig(
+                top_k=5,
+                weights=[0.7, 0.3],
+            ),
+        ),
     ),
     generation=GenerationConfig(
         strategy=GenerationType.DEFAULT,
@@ -227,17 +257,21 @@ config_medical = RAGConfig(
         config=FaissVectorStoreConfig(dimension=768)
     ),
     retrieval=RetrievalConfig(
-        type=RetrievalType.DENSE_RERANK,
-        config=DenseRerankRetrievalConfig(
-            top_k=10,
-            initial_k=30
-        )
-    ),
-    reranker=RerankerConfig(
-        type=RerankerType.CROSS_ENCODER,
-        config=CrossEncoderRerankerConfig(
-            model_name='BAAI/bge-reranker-v2-m3'
-        )
+        search=SearchPipelineConfig(
+            searches=[
+                SearchStrategyConfig(
+                    type=SearchType.DENSE,
+                    config=DenseSearchConfig(top_k=30),
+                )
+            ]
+        ),
+        rerank=RerankerConfig(
+            type=RerankerType.CROSS_ENCODER,
+            config=CrossEncoderRerankerConfig(
+                model_name='BAAI/bge-reranker-v2-m3',
+                top_k=10,
+            )
+        ),
     ),
     generation=GenerationConfig(
         strategy=GenerationType.DEFAULT,
@@ -277,10 +311,7 @@ config_cost_optimized = RAGConfig(
         type=VectorStoreType.FAISS,
         config=FaissVectorStoreConfig(dimension=768)
     ),
-    retrieval=RetrievalConfig(
-        type=RetrievalType.DENSE,
-        config=DenseRetrievalConfig(top_k=3)
-    ),
+    retrieval=_dense_search(top_k=3),
     generation=GenerationConfig(
         strategy=GenerationType.DEFAULT,
         provider='groq',
@@ -327,6 +358,6 @@ if __name__ == "__main__":
     print(f"\nSelected: high_quality")
     print(f"Chunking: {config.chunking.type}")
     print(f"Embedding: {config.embedding.type}")
-    print(f"Retrieval: {config.retrieval.type}")
+    print(f"Search strategies: {[s.type for s in config.retrieval.search.searches]}")
     print(f"Generation: {config.generation.strategy}")
     print(f"Evaluation: {config.evaluation.type}")

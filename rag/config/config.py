@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field, is_dataclass, asdict
 from enum import Enum
 from typing import Dict, Any, Optional
@@ -5,7 +7,9 @@ from typing import Dict, Any, Optional
 from .enums import (
     ChunkingType,
     EmbeddingType,
-    RetrievalType,
+    QueryTransformType,
+    SearchType,
+    FusionType,
     RerankerType,
     VectorStoreType,
     GenerationType,
@@ -25,6 +29,22 @@ def _coerce(value: Any, config_cls: type) -> Any:
         return config_cls()
     if isinstance(value, dict):
         return config_cls(**value)
+    return value
+
+
+def _serialize_value(value: Any) -> Any:
+    """Recursively serialize config values for dict/YAML export."""
+    if isinstance(value, Enum):
+        return value.value
+    if is_dataclass(value) and not isinstance(value, type):
+        return {
+            key: _serialize_value(item)
+            for key, item in asdict(value).items()
+        }
+    if isinstance(value, list):
+        return [_serialize_value(item) for item in value]
+    if isinstance(value, dict):
+        return {key: _serialize_value(item) for key, item in value.items()}
     return value
 
 
@@ -72,12 +92,14 @@ class TokenChunkingConfig:
 
 @dataclass
 class SemanticChunkingConfig:
+    embedding: EmbeddingConfig
     max_words: int = 256
     similarity_threshold: float = 0.8
     overlap_sentences: int = 1
     similarity_window: int = 5
 
-    embedding: EmbeddingConfig
+    def __post_init__(self):
+        self.embedding = _coerce(self.embedding, EmbeddingConfig)
 
 
 _CHUNKING_CONFIGS = {
@@ -210,46 +232,129 @@ class VectorStoreConfig:
 
 
 # ---------------------------------------------------------------------------
-# Retrieval
+# Retrieval pipeline
 # ---------------------------------------------------------------------------
 @dataclass
-class DenseRetrievalConfig:
-    """Tunables for dense retrieval."""
+class NoOpQueryTransformConfig:
+    """No-op query transform; passes the query through unchanged."""
+
+
+@dataclass
+class DenseSearchConfig:
+    """Tunables for dense vector search."""
     top_k: int = 5
 
 
 @dataclass
-class DenseRerankRetrievalConfig:
-    """Tunables for dense retrieval followed by reranking."""
+class SparseSearchConfig:
+    """Tunables for sparse (BM25) search."""
     top_k: int = 5
-    initial_k: int = 20
 
 
 @dataclass
-class HybridRetrievalConfig:
-    """Tunables for hybrid (dense + sparse) retrieval."""
+class NoOpFusionConfig:
+    """No-op fusion; passes a single search list through unchanged."""
+
+
+@dataclass
+class RRFFusionConfig:
+    """Tunables for reciprocal rank fusion."""
     top_k: int = 5
-    initial_k: int = 20
-    dense_weight: float = 0.7
-    sparse_weight: float = 0.3
+    k: int = 60
 
 
-_RETRIEVAL_CONFIGS = {
-    RetrievalType.DENSE: DenseRetrievalConfig,
-    RetrievalType.DENSE_RERANK: DenseRerankRetrievalConfig,
-    RetrievalType.HYBRID: HybridRetrievalConfig,
+@dataclass
+class WeightedSumFusionConfig:
+    """Tunables for weighted score fusion across search lists."""
+    top_k: int = 5
+    weights: list = field(default_factory=list)
+
+
+_QUERY_TRANSFORM_CONFIGS = {
+    QueryTransformType.NOOP: NoOpQueryTransformConfig,
+}
+
+_SEARCH_CONFIGS = {
+    SearchType.DENSE: DenseSearchConfig,
+    SearchType.SPARSE: SparseSearchConfig,
+}
+
+_FUSION_CONFIGS = {
+    FusionType.NOOP: NoOpFusionConfig,
+    FusionType.RRF: RRFFusionConfig,
+    FusionType.WEIGHTED_SUM: WeightedSumFusionConfig,
 }
 
 
 @dataclass
-class RetrievalConfig:
-    """Retrieval section: which strategy plus its own typed config."""
-    type: RetrievalType
+class QueryTransformConfig:
+    """Query-transform stage inside the retrieval pipeline."""
+    type: QueryTransformType
     config: Any = None
 
     def __post_init__(self):
-        self.type = RetrievalType(self.type)
-        self.config = _coerce(self.config, _RETRIEVAL_CONFIGS[self.type])
+        self.type = QueryTransformType(self.type)
+        self.config = _coerce(self.config, _QUERY_TRANSFORM_CONFIGS[self.type])
+
+
+@dataclass
+class SearchStrategyConfig:
+    """One search strategy entry inside the search sub-pipeline."""
+    type: SearchType
+    config: Any = None
+
+    def __post_init__(self):
+        self.type = SearchType(self.type)
+        self.config = _coerce(self.config, _SEARCH_CONFIGS[self.type])
+
+
+@dataclass
+class SearchPipelineConfig:
+    """Search sub-pipeline: one or more search strategies (mandatory)."""
+    searches: list
+
+    def __post_init__(self):
+        if not self.searches:
+            raise ValueError("retrieval.search.searches must contain at least one search")
+        self.searches = [
+            item if isinstance(item, SearchStrategyConfig) else SearchStrategyConfig(**item)
+            for item in self.searches
+        ]
+
+
+@dataclass
+class FusionConfig:
+    """Fusion stage inside the retrieval pipeline."""
+    type: FusionType
+    config: Any = None
+
+    def __post_init__(self):
+        self.type = FusionType(self.type)
+        self.config = _coerce(self.config, _FUSION_CONFIGS[self.type])
+
+
+@dataclass
+class RetrievalConfig:
+    """Retrieval pipeline: composable query transform, search, fusion, rerank."""
+    search: SearchPipelineConfig
+    query_transform: Optional[QueryTransformConfig] = None
+    fusion: Optional[FusionConfig] = None
+    rerank: Optional["RerankerConfig"] = None
+
+    def __post_init__(self):
+        if isinstance(self.search, dict):
+            self.search = SearchPipelineConfig(**self.search)
+        if isinstance(self.query_transform, dict):
+            self.query_transform = QueryTransformConfig(**self.query_transform)
+        if isinstance(self.fusion, dict):
+            self.fusion = FusionConfig(**self.fusion)
+        if isinstance(self.rerank, dict):
+            self.rerank = RerankerConfig(**self.rerank)
+        if len(self.search.searches) > 1 and self.fusion is None:
+            raise ValueError(
+                "retrieval.fusion is required when search.searches "
+                "contains more than one strategy"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -259,6 +364,7 @@ class RetrievalConfig:
 class CrossEncoderRerankerConfig:
     """Tunables for the cross-encoder reranker."""
     model_name: Optional[str] = None
+    top_k: int = 5
 
 
 @dataclass
@@ -399,8 +505,6 @@ class RAGConfig:
 
     evaluation: EvaluationConfig
 
-    reranker: Optional[RerankerConfig] = None
-
     mode: Mode = Mode.DEV
 
     name: str = "default"
@@ -416,12 +520,7 @@ class RAGConfig:
         """Serialize a config section, converting enums and nested configs."""
         result: Dict[str, Any] = {}
         for key, value in section.__dict__.items():
-            if isinstance(value, Enum):
-                result[key] = value.value
-            elif is_dataclass(value) and not isinstance(value, type):
-                result[key] = asdict(value)
-            else:
-                result[key] = value
+            result[key] = _serialize_value(value)
         return result
 
     def to_dict(self) -> Dict[str, Any]:
@@ -437,10 +536,6 @@ class RAGConfig:
             'embedding': self._section_to_dict(self.embedding),
             'vector_store': self._section_to_dict(self.vector_store),
             'retrieval': self._section_to_dict(self.retrieval),
-            'reranker': (
-                self._section_to_dict(self.reranker)
-                if self.reranker else None
-            ),
             'generation': self._section_to_dict(self.generation),
             'evaluation': self._section_to_dict(self.evaluation),
             'cache': self._section_to_dict(self.cache)
@@ -460,10 +555,6 @@ class RAGConfig:
             embedding=EmbeddingConfig(**data.get('embedding', {})),
             vector_store=VectorStoreConfig(**data.get('vector_store', {})),
             retrieval=RetrievalConfig(**data.get('retrieval', {})),
-            reranker=(
-                RerankerConfig(**data['reranker'])
-                if data.get('reranker') else None
-            ),
             generation=GenerationConfig(**data.get('generation', {})),
             evaluation=EvaluationConfig(**data.get('evaluation', {})),
             cache=CacheConfig(**data['cache']) if data.get('cache') else CacheConfig()

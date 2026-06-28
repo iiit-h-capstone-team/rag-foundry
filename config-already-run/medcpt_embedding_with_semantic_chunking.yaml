@@ -1,5 +1,5 @@
 mode: dev
-name: voyage_reranker
+name: medcpt_embedding_with_semantic_chunking
 
 cache:
   enabled: true
@@ -13,21 +13,28 @@ providers:
       cooldown_seconds: 60
 
 chunking:
-  type: token
+  type: semantic
   config:
-    max_tokens: 100
-    overlap_tokens: 10
+    max_words: 100
+    overlap_sentences: 1
+    similarity_threshold: 0.8
+
+    embedding:
+      type: sentence_transformer
+      config:
+        model_name: sentence-transformers/all-MiniLM-L6-v2
 
 embedding:
-  type: sentence_transformer
+  type: medcpt
   config:
-    model_name: BAAI/bge-large-en-v1.5
-    dimension: 1024
+    query_model_name: ncbi/MedCPT-Query-Encoder
+    article_model_name: ncbi/MedCPT-Article-Encoder
+    dimension: 768
 
 vector_store:
   type: faiss
   config:
-    dimension: 1024
+    dimension: 768
 
 retrieval:
   search:
@@ -35,11 +42,21 @@ retrieval:
       - type: dense
         config:
           top_k: 20
-  rerank:
-    type: voyage
+
+      - type: sparse
+        config:
+          top_k: 20
+
+  fusion:
+    type: rrf
     config:
-      model_name: rerank-2
-      top_k: 10
+      k: 60
+
+  rerank:
+    type: cross_encoder
+    config:
+      model_name: BAAI/bge-reranker-v2-m3
+      top_k: 5
 
 generation:
   strategy: default

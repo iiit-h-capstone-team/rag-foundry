@@ -30,16 +30,16 @@ vector_store:
     dimension: 1024
 
 retrieval:
-  type: dense_rerank
-  config:
-    top_k: 5
-    initial_k: 20
-
-reranker:
-  type: mixedbread
-  config:
-    model_name: mxbai-rerank-large-v1
-    top_n: 10
+  search:
+    searches:
+      - type: dense
+        config:
+          top_k: 20
+  rerank:
+    type: mixedbread
+    config:
+      model_name: mxbai-rerank-large-v1
+      top_n: 10
 
 generation:
   strategy: default
