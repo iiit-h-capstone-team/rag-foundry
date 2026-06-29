@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field, is_dataclass, asdict
 from enum import Enum
 from typing import Dict, Any, Optional
@@ -5,7 +7,9 @@ from typing import Dict, Any, Optional
 from .enums import (
     ChunkingType,
     EmbeddingType,
-    RetrievalType,
+    QueryTransformType,
+    SearchType,
+    FusionType,
     RerankerType,
     VectorStoreType,
     GenerationType,
@@ -25,6 +29,22 @@ def _coerce(value: Any, config_cls: type) -> Any:
         return config_cls()
     if isinstance(value, dict):
         return config_cls(**value)
+    return value
+
+
+def _serialize_value(value: Any) -> Any:
+    """Recursively serialize config values for dict/YAML export."""
+    if isinstance(value, Enum):
+        return value.value
+    if is_dataclass(value) and not isinstance(value, type):
+        return {
+            key: _serialize_value(item)
+            for key, item in asdict(value).items()
+        }
+    if isinstance(value, list):
+        return [_serialize_value(item) for item in value]
+    if isinstance(value, dict):
+        return {key: _serialize_value(item) for key, item in value.items()}
     return value
 
 
@@ -70,11 +90,23 @@ class TokenChunkingConfig:
     max_tokens: int = 200
     overlap_tokens: int = 20
 
+@dataclass
+class SemanticChunkingConfig:
+    embedding: EmbeddingConfig
+    max_words: int = 256
+    similarity_threshold: float = 0.8
+    overlap_sentences: int = 1
+    similarity_window: int = 5
+
+    def __post_init__(self):
+        self.embedding = _coerce(self.embedding, EmbeddingConfig)
+
 
 _CHUNKING_CONFIGS = {
     ChunkingType.SENTENCE: SentenceChunkingConfig,
     ChunkingType.FIXED_WINDOW: FixedWindowChunkingConfig,
     ChunkingType.TOKEN: TokenChunkingConfig,
+    ChunkingType.SEMANTIC: SemanticChunkingConfig,
 }
 
 
@@ -108,9 +140,58 @@ class OpenAIEmbeddingConfig:
     dimension: int = 1536
 
 
+@dataclass
+class OllamaEmbeddingConfig:
+    """Tunables for the Ollama embedding strategy."""
+    model_name: Optional[str] = None
+    model: Optional[str] = None
+    dimension: int = 768
+    base_url: str = "http://localhost:11434"
+
+
+@dataclass
+class CohereEmbeddingConfig:
+    """Tunables for the Cohere embedding strategy."""
+    model_name: Optional[str] = None
+    model: Optional[str] = None
+    dimension: int = 1024
+    input_type: str = "search_document"
+
+
+@dataclass
+class VoyageEmbeddingConfig:
+    """Tunables for the Voyage AI embedding strategy."""
+    model_name: Optional[str] = None
+    model: Optional[str] = None
+    dimension: int = 1024
+    input_type: Optional[str] = None
+
+
+@dataclass
+class HuggingFaceEmbeddingConfig:
+    """Tunables for the HuggingFace Inference embedding strategy."""
+    model_name: Optional[str] = None
+    model: Optional[str] = None
+    dimension: int = 768
+    api_url: Optional[str] = None
+
+
+@dataclass
+class MedCPTEmbeddingConfig:
+    """Tunables for the MedCPT embedding strategy (dual encoder)."""
+    query_model_name: str = "ncbi/MedCPT-Query-Encoder"
+    article_model_name: str = "ncbi/MedCPT-Article-Encoder"
+    dimension: int = 768
+
+
 _EMBEDDING_CONFIGS = {
     EmbeddingType.SENTENCE_TRANSFORMER: SentenceTransformerEmbeddingConfig,
     EmbeddingType.OPENAI: OpenAIEmbeddingConfig,
+    EmbeddingType.OLLAMA: OllamaEmbeddingConfig,
+    EmbeddingType.COHERE: CohereEmbeddingConfig,
+    EmbeddingType.VOYAGE: VoyageEmbeddingConfig,
+    EmbeddingType.HUGGINGFACE: HuggingFaceEmbeddingConfig,
+    EmbeddingType.MEDCPT: MedCPTEmbeddingConfig,
 }
 
 
@@ -151,46 +232,158 @@ class VectorStoreConfig:
 
 
 # ---------------------------------------------------------------------------
-# Retrieval
+# Retrieval pipeline
 # ---------------------------------------------------------------------------
 @dataclass
-class DenseRetrievalConfig:
-    """Tunables for dense retrieval."""
+class NoOpQueryTransformConfig:
+    """No-op query transform; passes the query through unchanged."""
+
+
+@dataclass
+class HyDEQueryTransformConfig:
+    """HyDE (Hypothetical Document Embeddings) query transform config."""
+    model: str
+    temperature: float = 0.2
+    max_tokens: int = 256
+
+
+@dataclass
+class MultiQueryQueryTransformConfig:
+    """MultiQuery query transform config."""
+    model: str
+    temperature: float = 0.7
+    num_queries: int = 4
+    max_tokens: int = 128
+
+
+@dataclass
+class StepBackQueryTransformConfig:
+    """Step-Back prompting query transform config."""
+    model: str
+    temperature: float = 0.3
+    max_tokens: int = 128
+
+
+@dataclass
+class DenseSearchConfig:
+    """Tunables for dense vector search."""
     top_k: int = 5
 
 
 @dataclass
-class DenseRerankRetrievalConfig:
-    """Tunables for dense retrieval followed by reranking."""
+class SparseSearchConfig:
+    """Tunables for sparse (BM25) search."""
     top_k: int = 5
-    initial_k: int = 20
 
 
 @dataclass
-class HybridRetrievalConfig:
-    """Tunables for hybrid (dense + sparse) retrieval."""
+class NoOpFusionConfig:
+    """No-op fusion; passes a single search list through unchanged."""
+
+
+@dataclass
+class RRFFusionConfig:
+    """Tunables for reciprocal rank fusion."""
     top_k: int = 5
-    initial_k: int = 20
-    dense_weight: float = 0.7
-    sparse_weight: float = 0.3
+    k: int = 60
 
 
-_RETRIEVAL_CONFIGS = {
-    RetrievalType.DENSE: DenseRetrievalConfig,
-    RetrievalType.DENSE_RERANK: DenseRerankRetrievalConfig,
-    RetrievalType.HYBRID: HybridRetrievalConfig,
+@dataclass
+class WeightedSumFusionConfig:
+    """Tunables for weighted score fusion across search lists."""
+    top_k: int = 5
+    weights: list = field(default_factory=list)
+
+
+_QUERY_TRANSFORM_CONFIGS = {
+    QueryTransformType.NOOP: NoOpQueryTransformConfig,
+    QueryTransformType.HYDE: HyDEQueryTransformConfig,
+    QueryTransformType.MULTI_QUERY: MultiQueryQueryTransformConfig,
+    QueryTransformType.STEP_BACK: StepBackQueryTransformConfig,
+}
+
+_SEARCH_CONFIGS = {
+    SearchType.DENSE: DenseSearchConfig,
+    SearchType.SPARSE: SparseSearchConfig,
+}
+
+_FUSION_CONFIGS = {
+    FusionType.NOOP: NoOpFusionConfig,
+    FusionType.RRF: RRFFusionConfig,
+    FusionType.WEIGHTED_SUM: WeightedSumFusionConfig,
 }
 
 
 @dataclass
-class RetrievalConfig:
-    """Retrieval section: which strategy plus its own typed config."""
-    type: RetrievalType
+class QueryTransformConfig:
+    """Query-transform stage inside the retrieval pipeline."""
+    type: QueryTransformType
+    provider: str | None = None
     config: Any = None
 
     def __post_init__(self):
-        self.type = RetrievalType(self.type)
-        self.config = _coerce(self.config, _RETRIEVAL_CONFIGS[self.type])
+        self.type = QueryTransformType(self.type)
+        self.config = _coerce(self.config, _QUERY_TRANSFORM_CONFIGS[self.type])
+
+
+@dataclass
+class SearchStrategyConfig:
+    """One search strategy entry inside the search sub-pipeline."""
+    type: SearchType
+    config: Any = None
+
+    def __post_init__(self):
+        self.type = SearchType(self.type)
+        self.config = _coerce(self.config, _SEARCH_CONFIGS[self.type])
+
+
+@dataclass
+class SearchPipelineConfig:
+    """Search sub-pipeline: one or more search strategies (mandatory)."""
+    searches: list
+
+    def __post_init__(self):
+        if not self.searches:
+            raise ValueError("retrieval.search.searches must contain at least one search")
+        self.searches = [
+            item if isinstance(item, SearchStrategyConfig) else SearchStrategyConfig(**item)
+            for item in self.searches
+        ]
+
+
+@dataclass
+class FusionConfig:
+    """Fusion stage inside the retrieval pipeline."""
+    type: FusionType
+    config: Any = None
+
+    def __post_init__(self):
+        self.type = FusionType(self.type)
+        self.config = _coerce(self.config, _FUSION_CONFIGS[self.type])
+
+
+@dataclass
+class RetrievalConfig:
+    """Retrieval pipeline: composable query transform, search, fusion, rerank."""
+    search: SearchPipelineConfig
+    query_transform: Optional[QueryTransformConfig] = None
+    fusion: Optional[FusionConfig] = None
+    rerank: Optional["RerankerConfig"] = None
+
+    def __post_init__(self):
+        if isinstance(self.search, dict):
+            self.search = SearchPipelineConfig(**self.search)
+        if isinstance(self.query_transform, dict):
+            self.query_transform = QueryTransformConfig(**self.query_transform)
+        if isinstance(self.fusion, dict):
+            self.fusion = FusionConfig(**self.fusion)
+        if isinstance(self.rerank, dict):
+            self.rerank = RerankerConfig(**self.rerank)
+        if len(self.search.searches) > 1 and self.fusion is None:
+            raise ValueError(
+                "retrieval.fusion is required when search.searches "
+                "contains more than one strategy"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -200,10 +393,47 @@ class RetrievalConfig:
 class CrossEncoderRerankerConfig:
     """Tunables for the cross-encoder reranker."""
     model_name: Optional[str] = None
+    top_k: int = 5
+
+
+@dataclass
+class CohereRerankerConfig:
+    """Tunables for the Cohere reranker."""
+    model_name: Optional[str] = None
+    model: Optional[str] = None
+    top_n: int = 10
+
+
+@dataclass
+class VoyageRerankerConfig:
+    """Tunables for the Voyage AI reranker."""
+    model_name: Optional[str] = None
+    model: Optional[str] = None
+    top_k: int = 10
+
+
+@dataclass
+class JinaRerankerConfig:
+    """Tunables for the Jina AI reranker."""
+    model_name: Optional[str] = None
+    model: Optional[str] = None
+    top_n: int = 10
+
+
+@dataclass
+class MixedBreadRerankerConfig:
+    """Tunables for the MixedBread AI reranker."""
+    model_name: Optional[str] = None
+    model: Optional[str] = None
+    top_n: int = 10
 
 
 _RERANKER_CONFIGS = {
     RerankerType.CROSS_ENCODER: CrossEncoderRerankerConfig,
+    RerankerType.COHERE: CohereRerankerConfig,
+    RerankerType.VOYAGE: VoyageRerankerConfig,
+    RerankerType.JINA: JinaRerankerConfig,
+    RerankerType.MIXEDBREAD: MixedBreadRerankerConfig,
 }
 
 
@@ -228,6 +458,7 @@ class DefaultGenerationConfig:
     max_tokens: int = 1024
     temperature: float = 0.7
     system_prompt: Optional[str] = None
+    user_prompt: Optional[str] = None
 
 
 _GENERATION_CONFIGS = {
@@ -287,6 +518,14 @@ class CacheConfig:
 
 
 @dataclass
+class LoggingConfig:
+    """Logging configuration for experiment execution."""
+    enabled: bool = True
+    level: str = "INFO"
+    show_progress: bool = True
+
+
+@dataclass
 class RAGConfig:
     """Complete RAG system configuration."""
 
@@ -304,29 +543,30 @@ class RAGConfig:
 
     evaluation: EvaluationConfig
 
-    reranker: Optional[RerankerConfig] = None
-
     mode: Mode = Mode.DEV
 
     name: str = "default"
 
     cache: CacheConfig = field(default_factory=CacheConfig)
 
+    # Query range override (takes precedence over experiment config)
+    start_index: int | None = None
+    end_index: int | None = None
+
+    # Logging configuration
+    logging_config: LoggingConfig = field(default_factory=LoggingConfig)
+
     def __post_init__(self):
         self.mode = Mode(self.mode)
         self.cache = _coerce(self.cache, CacheConfig)
+        self.logging_config = _coerce(self.logging_config, LoggingConfig)
 
     @staticmethod
     def _section_to_dict(section) -> Dict[str, Any]:
         """Serialize a config section, converting enums and nested configs."""
         result: Dict[str, Any] = {}
         for key, value in section.__dict__.items():
-            if isinstance(value, Enum):
-                result[key] = value.value
-            elif is_dataclass(value) and not isinstance(value, type):
-                result[key] = asdict(value)
-            else:
-                result[key] = value
+            result[key] = _serialize_value(value)
         return result
 
     def to_dict(self) -> Dict[str, Any]:
@@ -342,13 +582,12 @@ class RAGConfig:
             'embedding': self._section_to_dict(self.embedding),
             'vector_store': self._section_to_dict(self.vector_store),
             'retrieval': self._section_to_dict(self.retrieval),
-            'reranker': (
-                self._section_to_dict(self.reranker)
-                if self.reranker else None
-            ),
             'generation': self._section_to_dict(self.generation),
             'evaluation': self._section_to_dict(self.evaluation),
-            'cache': self._section_to_dict(self.cache)
+            'cache': self._section_to_dict(self.cache),
+            'start_index': self.start_index,
+            'end_index': self.end_index,
+            'logging_config': self._section_to_dict(self.logging_config)
         }
 
     @classmethod
@@ -365,13 +604,12 @@ class RAGConfig:
             embedding=EmbeddingConfig(**data.get('embedding', {})),
             vector_store=VectorStoreConfig(**data.get('vector_store', {})),
             retrieval=RetrievalConfig(**data.get('retrieval', {})),
-            reranker=(
-                RerankerConfig(**data['reranker'])
-                if data.get('reranker') else None
-            ),
             generation=GenerationConfig(**data.get('generation', {})),
             evaluation=EvaluationConfig(**data.get('evaluation', {})),
-            cache=CacheConfig(**data['cache']) if data.get('cache') else CacheConfig()
+            cache=CacheConfig(**data['cache']) if data.get('cache') else CacheConfig(),
+            start_index=data.get('start_index'),
+            end_index=data.get('end_index'),
+            logging_config=LoggingConfig(**data.get('logging_config', {})) if data.get('logging_config') else LoggingConfig()
         )
 
     def model_dump(self) -> Dict[str, Any]:

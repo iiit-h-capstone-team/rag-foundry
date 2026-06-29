@@ -1,7 +1,15 @@
+import json
+import time
+import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
 from pathlib import Path
+from typing import Any, Dict
 
 from experiment.comparison import ComparisonReport
+from experiment.metadata import ExperimentMetadata, ExperimentStatus
+from experiment.progress_reporter import ProgressReporter
+from rag.persistence.jsonl_writer import JSONLWriter
 from ingestion import (
     DataProcessor,
     DatasetLoadingConfig,
@@ -26,6 +34,10 @@ class ExperimentRunner:
         self.config = experiment_config
 
         self.config.report_dir.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+        self.config.temp_dir.mkdir(
             parents=True,
             exist_ok=True,
         )
@@ -126,33 +138,103 @@ class ExperimentRunner:
         documents,
         raw_data,
     ):
-        pipeline = RAGPipeline(config)
-        pipeline.build_index(documents)
-        records = []
-        for sample in raw_data[: self.config.num_queries]:
-            result = pipeline.query(
-                sample["question"]
-            )
-            records.append(
-                QueryResult(
-                    query=sample["question"],
-                    retrieved_docs=result["retrieved_docs"],
-                    answer=result["response"],
-                    metadata={
-                        "predicted_scores": result["scores"],
-                        "ground_truth_scores": {
-                            "relevance_score": sample.get("relevance_score", 0.0),
-                            "utilization_score": sample.get("utilization_score", 0.0),
-                            "completeness_score": sample.get("completeness_score", 0.0),
-                            "adherence_score": sample.get("adherence_score", False),
-                        },
-                    },
-                )
-            )
-        return PipelineRunResult(
-            records=records,
-            config=config,
+        """Run a single config with parallel query execution."""
+        # Resolve query range
+        start_index = (
+            config.start_index
+            if config.start_index is not None
+            else self.config.start_index
         )
+        end_index = (
+            config.end_index
+            if config.end_index is not None
+            else self.config.end_index
+        )
+        if end_index is None:
+            end_index = len(raw_data)
+        
+        # Create JSONL writer
+        jsonl_path = self.config.temp_dir / f"{config.name}.jsonl"
+        jsonl_writer = JSONLWriter(jsonl_path)
+        jsonl_writer.start()
+        
+        # Create pipeline and build index once
+        pipeline = RAGPipeline(config, jsonl_path=jsonl_path)
+        pipeline.build_index(documents)
+        
+        # Create metadata
+        dataset_name = self.config.data_loader.get("config", {}).get("dataset_name", "unknown") if self.config.data_loader else "unknown"
+        metadata = ExperimentMetadata(
+            dataset=dataset_name,
+            config_name=config.name,
+            start_index=start_index,
+            end_index=end_index,
+            total_queries=end_index - start_index,
+            created_at=datetime.utcnow().isoformat(),
+            status=ExperimentStatus.RUNNING,
+        )
+        metadata_path = self.config.temp_dir / f"{config.name}_metadata.json"
+        metadata.save(metadata_path)
+        
+        # Start progress reporter
+        show_progress = config.logging_config.show_progress if hasattr(config.logging_config, 'show_progress') else True
+        total_queries = end_index - start_index
+        progress_reporter = ProgressReporter(
+            total_queries=total_queries,
+            jsonl_writer=jsonl_writer,
+            show_progress=show_progress
+        )
+        progress_reporter.start()
+        
+        # Submit query tasks to ThreadPoolExecutor
+        max_workers = self.config.max_workers
+        
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = []
+            for i in range(start_index, end_index):
+                sample = raw_data[i]
+                # Extract ground truth scores
+                ground_truth = {
+                    "relevance_score": sample.get("relevance_score", 0.0),
+                    "utilization_score": sample.get("utilization_score", 0.0),
+                    "completeness_score": sample.get("completeness_score", 0.0),
+                    "adherence_score": sample.get("adherence_score", False),
+                }
+                future = executor.submit(
+                    pipeline.query,
+                    sample["question"],
+                    i,
+                    ground_truth
+                )
+                futures.append(future)
+            
+            # Wait for all futures to complete and write results
+            for future in as_completed(futures):
+                try:
+                    result = future.result()
+                    jsonl_writer.put(result)
+                except Exception as e:
+                    print(f"Error in worker: {e}")
+        
+        # Stop progress reporter
+        progress_reporter.stop()
+        
+        # Stop writer thread
+        jsonl_writer.stop()
+        
+        # Update metadata
+        metadata.update_status(ExperimentStatus.COMPLETED)
+        metadata.save(metadata_path)
+        
+        # Return summary statistics instead of full results
+        stats = jsonl_writer.get_stats()
+        return {
+            "config_name": config.name,
+            "config": config,
+            "total_written": stats["total_written"],
+            "highest_continuous_index": stats["highest_continuous_index"],
+            "jsonl_path": jsonl_path,
+        }
 
     def run(
         self,
@@ -195,6 +277,7 @@ class ExperimentRunner:
         self,
         runs,
     ):
+        """Generate reports from JSONL files instead of in-memory results."""
         # Create report strategy using factory pattern
         strategy = ReportStrategyFactory.create_strategy(
             self.config.report_strategy
@@ -203,13 +286,51 @@ class ExperimentRunner:
         generator = ReportGenerator(strategy)
         reports = []
         for run in runs:
-            report = generator.generate(run)
+            # Generate report from JSONL file
+            jsonl_path = run["jsonl_path"]
+            config = run["config"]
+            
+            # Load records from JSONL and create PipelineRunResult-like structure
+            records = self._load_records_from_jsonl(jsonl_path)
+            
+            # Create a PipelineRunResult for compatibility
+            pipeline_run_result = PipelineRunResult(
+                records=records,
+                config=config,
+            )
+            
+            report = generator.generate(pipeline_run_result)
             report.save_json(
                 self.config.report_dir
-                / f"{run.config.name}.json"
+                / f"{config.name}.json"
             )
             reports.append(report)
         return reports
+    
+    def _load_records_from_jsonl(self, jsonl_path: Path):
+        """Stream query records from JSONL file one at a time."""
+        from rag.models.query_result import QueryResult
+        
+        records = []
+        with open(jsonl_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    record = json.loads(line)
+                    # Skip failed records
+                    if record.get("metadata", {}).get("status") == "failed":
+                        continue
+                    
+                    # Convert to QueryResult using from_dict
+                    query_result = QueryResult.from_dict(record)
+                    records.append(query_result)
+                except (json.JSONDecodeError, KeyError) as e:
+                    print(f"Error loading record from JSONL: {e}")
+                    continue
+        
+        return records
 
     def compare(self):
         comparison = ComparisonReport.from_directory(

@@ -131,6 +131,93 @@ class Report:
             heading("### Aggregate TRACe scores (mean / ground truth / deviation)")
             show(section.summary)
 
+    @classmethod
+    def from_jsonl(
+        cls,
+        jsonl_path: str | Path,
+        config_name: str,
+        *,
+        title: str = "Experiment Report",
+        strategy_name: str = "jsonl",
+    ) -> "Report":
+        jsonl_path = Path(jsonl_path)
+
+        rows = []
+        summary_rows = []
+
+        with open(jsonl_path, "r", encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+
+                record = json.loads(line)
+                metadata = record.get("metadata", {})
+
+                # Skip failed/incomplete runs
+                if metadata.get("status") != "success":
+                    continue
+
+                predicted = metadata.get("predicted_scores")
+                ground_truth = metadata.get("ground_truth")
+
+                if predicted is None or ground_truth is None:
+                    continue
+
+                row = {
+                    "query": record["query"],
+                    "retrieved_documents": record["retrieved_docs"],
+                    "answer": record["answer"],
+                }
+
+                for metric in (
+                    "relevance_score",
+                    "utilization_score",
+                    "completeness_score",
+                    "adherence_score",
+                ):
+                    pred = predicted[metric]
+                    gt = ground_truth[metric]
+
+                    row[f"{metric}__pred"] = pred
+                    row[f"{metric}__gt"] = gt
+                    row[f"{metric}__deviation"] = pred - gt
+
+                rows.append(row)
+
+        if not rows:
+            raise ValueError(f"No successful records found in {jsonl_path}")
+
+        per_query = pd.DataFrame(rows)
+
+        summary = pd.DataFrame(
+            [
+                {
+                    "metric": metric,
+                    "mean": per_query[f"{metric}__pred"].mean(),
+                    "ground_truth": per_query[f"{metric}__gt"].mean(),
+                    "deviation": per_query[f"{metric}__deviation"].mean(),
+                }
+                for metric in (
+                    "relevance_score",
+                    "utilization_score",
+                    "completeness_score",
+                    "adherence_score",
+                )
+            ]
+        )
+
+        section = ReportSection(
+            config_name=config_name,
+            per_query=per_query,
+            summary=summary,
+            config_summary={},
+        )
+
+        return cls(
+            title=title,
+            strategy_name=strategy_name,
+            sections=[section],
+        )
 
 class ReportStrategy(ABC):
     """Turn raw pipeline runs into a :class:`Report`.

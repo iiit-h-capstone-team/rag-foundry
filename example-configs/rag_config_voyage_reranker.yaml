@@ -1,5 +1,5 @@
 mode: dev
-name: high_quality_small
+name: voyage_reranker
 
 cache:
   enabled: true
@@ -13,10 +13,10 @@ providers:
       cooldown_seconds: 60
 
 chunking:
-  type: sentence
+  type: token
   config:
-    max_words: 100
-    overlap_sentences: 1
+    max_tokens: 100
+    overlap_tokens: 10
 
 embedding:
   type: sentence_transformer
@@ -30,15 +30,16 @@ vector_store:
     dimension: 1024
 
 retrieval:
-  type: dense_rerank
-  config:
-    top_k: 5
-    initial_k: 20
-
-reranker:
-  type: cross_encoder
-  config:
-    model_name: BAAI/bge-reranker-v2-m3
+  search:
+    searches:
+      - type: dense
+        config:
+          top_k: 20
+  rerank:
+    type: voyage
+    config:
+      model_name: rerank-2
+      top_k: 10
 
 generation:
   strategy: default

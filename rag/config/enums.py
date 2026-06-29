@@ -18,21 +18,43 @@ class ChunkingType(str, Enum):
     SENTENCE = "sentence"
     FIXED_WINDOW = "fixed_window"
     TOKEN = "token"
+    SEMANTIC = "semantic"
 
 
 class EmbeddingType(str, Enum):
     SENTENCE_TRANSFORMER = "sentence_transformer"
     OPENAI = "openai"
+    OLLAMA = "ollama"
+    COHERE = "cohere"
+    VOYAGE = "voyage"
+    HUGGINGFACE = "huggingface"
+    MEDCPT = "medcpt"
 
 
-class RetrievalType(str, Enum):
-    DENSE_RERANK = "dense_rerank"
+class QueryTransformType(str, Enum):
+    NOOP = "noop"
+    HYDE = "hyde"
+    MULTI_QUERY = "multi_query"
+    STEP_BACK = "step_back"
+
+
+class SearchType(str, Enum):
     DENSE = "dense"
-    HYBRID = "hybrid"
+    SPARSE = "sparse"
+
+
+class FusionType(str, Enum):
+    NOOP = "noop"
+    RRF = "rrf"
+    WEIGHTED_SUM = "weighted_sum"
 
 
 class RerankerType(str, Enum):
     CROSS_ENCODER = "cross_encoder"
+    COHERE = "cohere"
+    VOYAGE = "voyage"
+    JINA = "jina"
+    MIXEDBREAD = "mixedbread"
 
 
 class VectorStoreType(str, Enum):

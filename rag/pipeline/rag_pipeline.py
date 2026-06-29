@@ -1,13 +1,23 @@
 import logging
+import time
+import traceback
+from pathlib import Path
+from typing import Optional, Dict, Any
 
 import numpy as np
 
 from rag.cache.cache_manager import CacheManager
+from rag.chunking.chunking_factory import ChunkingFactory
 from rag.config.config import RAGConfig
 from rag.config.enums import Mode
-from rag.factory.strategy_factory import StrategyFactory
+from rag.embedding.embedding_factory import EmbeddingFactory
+from rag.evaluation.evaluator_factory import EvaluatorFactory
+from rag.generation.generator_factory import GeneratorFactory
 from rag.models.document import Document
+from rag.models.query_result import QueryResult
 from providers.provider_manager import ProviderManager
+from rag.retrieval.retrieval_factory import RetrievalFactory
+from rag.vectorstores.vectorstore_factory import VectorStoreFactory
 
 logger = logging.getLogger(__name__)
 
@@ -44,14 +54,16 @@ class RAGPipeline:
     its config object.
     """
 
-    def __init__(self, config: RAGConfig):
+    def __init__(self, config: RAGConfig, jsonl_path: Optional[Path] = None):
         """
         Initialize RAG pipeline from configuration.
 
         Args:
             config: RAGConfig instance
+            jsonl_path: Optional path for JSONL output. If None, defaults to temp/{config.name}.jsonl
         """
         self.config = config
+        self.jsonl_path = jsonl_path or Path("temp") / f"{config.name}.jsonl"
 
         _configure_logging(self.config.mode)
         logger.debug("Initializing RAG pipeline in %s mode", self.config.mode.value)
@@ -84,34 +96,27 @@ class RAGPipeline:
         """Initialize all strategies from config."""
 
         # Chunking
-        self.chunker = StrategyFactory.create_chunker(
+        self.chunker = ChunkingFactory.create_chunker(
             self.config.chunking
         )
 
         # Embedding
-        self.embedder = StrategyFactory.create_embedder(
+        self.embedder = EmbeddingFactory.create_embedder(
             self.config.embedding
         )
 
         # Vector Store
-        self.vector_store = StrategyFactory.create_vectorstore(
+        self.vector_store = VectorStoreFactory.create_vectorstore(
             self.config.vector_store
         )
 
-        # Reranking (only used by rerank-based retrievers).
-        self.reranker = (
-            StrategyFactory.create_reranker(self.config.reranker)
-            if self.config.reranker
-            else None
-        )
-
-        # Retrieval
-        self.retriever = StrategyFactory.create_retriever(
+        # Retrieval pipeline
+        self.retriever = RetrievalFactory.create_retrieval_pipeline(
             config=self.config.retrieval,
             embedder=self.embedder,
             vector_store=self.vector_store,
-            reranker=self.reranker,
             bm25_store=None,
+            providers=self.config.providers,
         )
 
         # Generation
@@ -122,7 +127,7 @@ class RAGPipeline:
             )
         )
 
-        self.generator = StrategyFactory.create_generator(
+        self.generator = GeneratorFactory.create_generator(
             config=self.config.generation,
             provider=generation_provider
         )
@@ -133,7 +138,7 @@ class RAGPipeline:
                 self.config.evaluation.provider
             )
         )
-        self.evaluator = StrategyFactory.create_evaluator(
+        self.evaluator = EvaluatorFactory.create_evaluator(
             config=self.config.evaluation,
             provider=evaluation_provider
         )
@@ -199,74 +204,141 @@ class RAGPipeline:
 
         logger.info("Vector store ready with %d chunks", len(self.vector_store.chunks))
 
-    def query(self, query: str) -> dict:
-        """Run complete RAG query."""
+    def query(self, query: str, query_index: int = 0, ground_truth: Optional[Dict] = None) -> QueryResult:
+        """Run complete RAG query and return QueryResult with latencies."""
         logger.info("Query: %s", query)
 
-        # 1. Retrieve
-        logger.debug("Retrieving documents...")
-        retrieved = self.retriever.retrieve(query)
-        logger.debug("Retrieved %d documents", len(retrieved))
+        total_start = time.time()
+        metadata = {}
+        
+        try:
+            # 1. Retrieve
+            logger.debug("Retrieving documents...")
+            retrieval_start = time.time()
+            retrieved = self.retriever.retrieve(query)
+            retrieval_ms = (time.time() - retrieval_start) * 1000
+            logger.debug("Retrieved %d documents", len(retrieved))
 
-        # Format for generation. Every score the retriever attached
-        # (e.g. dense_score, rerank_score, score) is preserved alongside the
-        # text/metadata so downstream consumers (reporting) keep full detail.
-        retrieved_docs = []
-        for r in retrieved:
-            doc = {k: v for k, v in r.items() if k != "chunk"}
-            doc["text"] = r["chunk"].text
-            doc["metadata"] = r["chunk"].metadata
-            retrieved_docs.append(doc)
+            # Format for generation. Every score the retriever attached
+            # (e.g. dense_score, rerank_score, score) is preserved alongside the
+            # text/metadata so downstream consumers (reporting) keep full detail.
+            retrieved_docs = []
+            for r in retrieved:
+                doc = {k: v for k, v in r.items() if k != "chunk"}
+                doc["text"] = r["chunk"].text
+                doc["metadata"] = r["chunk"].metadata
+                retrieved_docs.append(doc)
 
-        # 2. Generate
-        logger.debug("Generating response...")
-        context = "\n\n".join([
-            f"[Document {i+1}]\n{doc['text']}"
-            for i, doc in enumerate(retrieved_docs)
-        ])
+            # 2. Generate
+            logger.debug("Generating response...")
+            generation_start = time.time()
+            context = "\n\n".join([
+                f"[Document {i+1}]\n{doc['text']}"
+                for i, doc in enumerate(retrieved_docs)
+            ])
 
-        response = self.generator.generate(
-            query=query,
-            context=context,
-        )
-        logger.debug("Response generated (%d chars)", len(response))
+            response = self.generator.generate(
+                query=query,
+                context=context,
+            )
+            generation_ms = (time.time() - generation_start) * 1000
+            logger.debug("Response generated (%d chars)", len(response))
 
-        # 3. Evaluate
-        logger.debug("Evaluating response...")
-        scores = self.evaluator.evaluate(
-            query=query,
-            retrieved_docs=retrieved_docs,
-            response=response,
-        )
-        logger.debug("Evaluation complete")
+            # 3. Evaluate
+            logger.debug("Evaluating response...")
+            evaluation_start = time.time()
+            scores = self.evaluator.evaluate(
+                query=query,
+                retrieved_docs=retrieved_docs,
+                response=response,
+            )
+            evaluation_ms = (time.time() - evaluation_start) * 1000
+            logger.debug("Evaluation complete")
 
-        return {
-            'query': query,
-            'retrieved_docs': retrieved_docs,
-            'response': response,
-            'scores': scores
-        }
+            total_ms = (time.time() - total_start) * 1000
 
-    def print_results(self, result: dict):
+            # Store latencies and metadata
+            metadata["latencies"] = {
+                "retrieval_ms": retrieval_ms,
+                "generation_ms": generation_ms,
+                "evaluation_ms": evaluation_ms,
+                "total_ms": total_ms
+            }
+            metadata["query_index"] = query_index
+            metadata["status"] = "success"
+            metadata["predicted_scores"] = scores
+            
+            if ground_truth:
+                metadata["ground_truth"] = ground_truth
+
+            # Convert retrieved_docs dict format to Document objects for QueryResult
+            from rag.models.document import Document
+            retrieved_doc_objects = [
+                Document(
+                    title=doc.get("title", ""),
+                    content=doc.get("text", ""),
+                    metadata=doc.get("metadata", {})
+                )
+                for doc in retrieved_docs
+            ]
+
+            return QueryResult(
+                query=query,
+                retrieved_docs=retrieved_doc_objects,
+                answer=response,
+                metadata=metadata
+            )
+
+        except Exception as e:
+            total_ms = (time.time() - total_start) * 1000
+            logger.error(f"Query failed: {e}")
+            
+            metadata["latencies"] = {
+                "total_ms": total_ms
+            }
+            metadata["query_index"] = query_index
+            metadata["status"] = "failed"
+            metadata["error"] = traceback.format_exc()
+            
+            if ground_truth:
+                metadata["ground_truth"] = ground_truth
+
+            return QueryResult(
+                query=query,
+                retrieved_docs=[],
+                answer="",
+                metadata=metadata
+            )
+
+    def print_results(self, result: QueryResult):
         """Pretty print query results."""
         print(f"\n{'='*60}")
         print("QUERY RESULTS")
         print('='*60)
 
-        print(f"\nQuery: {result['query']}")
+        print(f"\nQuery: {result.query}")
 
-        print(f"\n--- Retrieved Documents ({len(result['retrieved_docs'])}) ---")
-        for i, doc in enumerate(result['retrieved_docs'][:3], 1):
-            print(f"\n{i}. {doc['text'][:200]}...")
+        print(f"\n--- Retrieved Documents ({len(result.retrieved_docs)}) ---")
+        for i, doc in enumerate(result.retrieved_docs[:3], 1):
+            print(f"\n{i}. {doc.content[:200]}...")
 
         print(f"\n--- Generated Response ---")
-        print(result['response'][:500] + "..." if len(result['response']) > 500 else result['response'])
+        print(result.answer[:500] + "..." if len(result.answer) > 500 else result.answer)
 
-        print(f"\n--- TRACe Scores ---")
-        scores = result['scores']
-        print(f"  Relevance:    {scores['relevance_score']:.4f}")
-        print(f"  Utilization:  {scores['utilization_score']:.4f}")
-        print(f"  Completeness: {scores['completeness_score']:.4f}")
-        print(f"  Adherence:    {scores['adherence_score']}")
+        if "predicted_scores" in result.metadata:
+            print(f"\n--- TRACe Scores ---")
+            scores = result.metadata["predicted_scores"]
+            print(f"  Relevance:    {scores['relevance_score']:.4f}")
+            print(f"  Utilization:  {scores['utilization_score']:.4f}")
+            print(f"  Completeness: {scores['completeness_score']:.4f}")
+            print(f"  Adherence:    {scores['adherence_score']}")
+
+        if "latencies" in result.metadata:
+            print(f"\n--- Latencies ---")
+            latencies = result.metadata["latencies"]
+            print(f"  Retrieval:    {latencies.get('retrieval_ms', 0):.2f}ms")
+            print(f"  Generation:   {latencies.get('generation_ms', 0):.2f}ms")
+            print(f"  Evaluation:   {latencies.get('evaluation_ms', 0):.2f}ms")
+            print(f"  Total:        {latencies.get('total_ms', 0):.2f}ms")
 
         print(f"\n{'='*60}\n")

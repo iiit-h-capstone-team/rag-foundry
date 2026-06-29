@@ -67,20 +67,25 @@ class GroqProvider(BaseLLMProvider):
         key_state.total_429s += 1
 
     @staticmethod
-    def _retry_after_seconds(exc: RateLimitError) -> int | None:
+    def _retry_after_seconds(exc: RateLimitError):
+
         response = getattr(exc, "response", None)
         headers = getattr(response, "headers", None)
+
         if not headers:
             return None
 
-        retry_after = headers.get("retry-after")
-        if retry_after is None:
-            return None
+        if retry := headers.get("retry-after"):
+            return int(float(retry))
 
-        try:
-            return int(float(retry_after))
-        except (TypeError, ValueError):
-            return None
+        if reset := headers.get("x-ratelimit-reset-requests"):
+            if reset.endswith("ms"):
+                return max(1, round(float(reset[:-2]) / 1000))
+
+            if reset.endswith("s"):
+                return int(float(reset[:-1]))
+
+        return None
 
     def _get_next_available_key(self) -> KeyState:
 
@@ -115,6 +120,8 @@ class GroqProvider(BaseLLMProvider):
 
             key_state = self._get_next_available_key()
 
+            print(f"Using key #{self.current_index}: ****{key_state.api_key[-4:]}")
+
             if key_state.api_key in attempted_keys:
                 break
 
@@ -146,10 +153,35 @@ class GroqProvider(BaseLLMProvider):
 
                 key_state.total_failures += 1
 
+                response = getattr(exc, "response", None)
+
+                print("=" * 80)
+                print(f"429 on ****{key_state.api_key[-4:]}")
+                print(exc)
+
+                if response:
+                    print("Status:", response.status_code)
+
+                    print("\nHeaders:")
+                    for k, v in response.headers.items():
+                        print(f"  {k}: {v}")
+
+                    try:
+                        print("\nBody:")
+                        print(response.text)
+                    except Exception:
+                        pass
+
+                retry_after = self._retry_after_seconds(exc)
+
+                print("Retry after:", retry_after)
+
                 self._mark_rate_limited(
                     key_state=key_state,
-                    retry_after_seconds=self._retry_after_seconds(exc)
+                    retry_after_seconds=retry_after,
                 )
+
+                print(self.health())
 
             except Exception:
 
@@ -177,4 +209,20 @@ class GroqProvider(BaseLLMProvider):
                 }
                 for key in self.keys
             ]
+        }
+
+    def current_key(self) -> dict:
+        """Return information about the key that will be used next."""
+
+        key = self.keys[self.current_index]
+
+        return {
+            "index": self.current_index,
+            "key_suffix": key.api_key[-4:],
+            "available": key.available,
+            "cooldown_until": key.cooldown_until,
+            "requests": key.total_requests,
+            "successes": key.total_successes,
+            "failures": key.total_failures,
+            "429s": key.total_429s,
         }

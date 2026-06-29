@@ -1,0 +1,59 @@
+mode: dev
+name: jina_reranker
+
+cache:
+  enabled: true
+  cache_dir: ./cache
+
+providers:
+  groq:
+    type: groq
+    api_key_env: GROQ_API_KEY
+    params:
+      cooldown_seconds: 60
+
+chunking:
+  type: token
+  config:
+    max_tokens: 100
+    overlap_tokens: 10
+
+embedding:
+  type: sentence_transformer
+  config:
+    model_name: BAAI/bge-large-en-v1.5
+    dimension: 1024
+
+vector_store:
+  type: faiss
+  config:
+    dimension: 1024
+
+retrieval:
+  search:
+    searches:
+      - type: dense
+        config:
+          top_k: 20
+  rerank:
+    type: jina
+    config:
+      model_name: jina-reranker-v2-base
+      top_n: 10
+
+generation:
+  strategy: default
+  provider: groq
+  config:
+    model: llama-3.1-8b-instant
+    max_tokens: 1024
+    temperature: 0.7
+    system_prompt: null
+
+evaluation:
+  type: trace
+  provider: groq
+  config:
+    model: llama-3.1-8b-instant
+    max_tokens: 2000
+    temperature: 0.0

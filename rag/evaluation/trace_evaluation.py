@@ -129,7 +129,13 @@ Respond with valid JSON only. No text before or after the JSON."""
         )
 
         raw = result.choices[0].message.content.strip()
-        match = re.search(r'\{.*\}', raw, re.DOTALL)
+        match = re.search(r"\{.*\}", raw, re.DOTALL)
+
+        if match is None:
+            raise ValueError(
+                f"Judge did not return valid JSON:\n\n{raw}"
+            )
+
         judge_output = json.loads(match.group())
 
         total_doc_sentences = sum(len(doc) for doc in doc_sentences)
