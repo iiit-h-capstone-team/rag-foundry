@@ -240,6 +240,31 @@ class NoOpQueryTransformConfig:
 
 
 @dataclass
+class HyDEQueryTransformConfig:
+    """HyDE (Hypothetical Document Embeddings) query transform config."""
+    model: str
+    temperature: float = 0.2
+    max_tokens: int = 256
+
+
+@dataclass
+class MultiQueryQueryTransformConfig:
+    """MultiQuery query transform config."""
+    model: str
+    temperature: float = 0.7
+    num_queries: int = 4
+    max_tokens: int = 128
+
+
+@dataclass
+class StepBackQueryTransformConfig:
+    """Step-Back prompting query transform config."""
+    model: str
+    temperature: float = 0.3
+    max_tokens: int = 128
+
+
+@dataclass
 class DenseSearchConfig:
     """Tunables for dense vector search."""
     top_k: int = 5
@@ -272,6 +297,9 @@ class WeightedSumFusionConfig:
 
 _QUERY_TRANSFORM_CONFIGS = {
     QueryTransformType.NOOP: NoOpQueryTransformConfig,
+    QueryTransformType.HYDE: HyDEQueryTransformConfig,
+    QueryTransformType.MULTI_QUERY: MultiQueryQueryTransformConfig,
+    QueryTransformType.STEP_BACK: StepBackQueryTransformConfig,
 }
 
 _SEARCH_CONFIGS = {
@@ -290,6 +318,7 @@ _FUSION_CONFIGS = {
 class QueryTransformConfig:
     """Query-transform stage inside the retrieval pipeline."""
     type: QueryTransformType
+    provider: str | None = None
     config: Any = None
 
     def __post_init__(self):
@@ -429,6 +458,7 @@ class DefaultGenerationConfig:
     max_tokens: int = 1024
     temperature: float = 0.7
     system_prompt: Optional[str] = None
+    user_prompt: Optional[str] = None
 
 
 _GENERATION_CONFIGS = {
@@ -488,6 +518,14 @@ class CacheConfig:
 
 
 @dataclass
+class LoggingConfig:
+    """Logging configuration for experiment execution."""
+    enabled: bool = True
+    level: str = "INFO"
+    show_progress: bool = True
+
+
+@dataclass
 class RAGConfig:
     """Complete RAG system configuration."""
 
@@ -511,9 +549,17 @@ class RAGConfig:
 
     cache: CacheConfig = field(default_factory=CacheConfig)
 
+    # Query range override (takes precedence over experiment config)
+    start_index: int | None = None
+    end_index: int | None = None
+
+    # Logging configuration
+    logging_config: LoggingConfig = field(default_factory=LoggingConfig)
+
     def __post_init__(self):
         self.mode = Mode(self.mode)
         self.cache = _coerce(self.cache, CacheConfig)
+        self.logging_config = _coerce(self.logging_config, LoggingConfig)
 
     @staticmethod
     def _section_to_dict(section) -> Dict[str, Any]:
@@ -538,7 +584,10 @@ class RAGConfig:
             'retrieval': self._section_to_dict(self.retrieval),
             'generation': self._section_to_dict(self.generation),
             'evaluation': self._section_to_dict(self.evaluation),
-            'cache': self._section_to_dict(self.cache)
+            'cache': self._section_to_dict(self.cache),
+            'start_index': self.start_index,
+            'end_index': self.end_index,
+            'logging_config': self._section_to_dict(self.logging_config)
         }
 
     @classmethod
@@ -557,7 +606,10 @@ class RAGConfig:
             retrieval=RetrievalConfig(**data.get('retrieval', {})),
             generation=GenerationConfig(**data.get('generation', {})),
             evaluation=EvaluationConfig(**data.get('evaluation', {})),
-            cache=CacheConfig(**data['cache']) if data.get('cache') else CacheConfig()
+            cache=CacheConfig(**data['cache']) if data.get('cache') else CacheConfig(),
+            start_index=data.get('start_index'),
+            end_index=data.get('end_index'),
+            logging_config=LoggingConfig(**data.get('logging_config', {})) if data.get('logging_config') else LoggingConfig()
         )
 
     def model_dump(self) -> Dict[str, Any]:

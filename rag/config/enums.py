@@ -33,6 +33,9 @@ class EmbeddingType(str, Enum):
 
 class QueryTransformType(str, Enum):
     NOOP = "noop"
+    HYDE = "hyde"
+    MULTI_QUERY = "multi_query"
+    STEP_BACK = "step_back"
 
 
 class SearchType(str, Enum):

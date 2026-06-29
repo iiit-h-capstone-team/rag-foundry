@@ -1,5 +1,6 @@
 from rag.config.config import FusionConfig, QueryTransformConfig, RerankerConfig, RetrievalConfig
 from rag.config.enums import FusionType, QueryTransformType
+from providers.provider_factory import ProviderFactory
 from rag.reranking.reranking_factory import RerankingFactory
 from rag.retrieval.fusion.fusion_factory import FusionFactory
 from rag.retrieval.pipeline import RetrievalPipeline
@@ -32,6 +33,7 @@ class RetrievalFactory:
         embedder,
         vector_store,
         bm25_store=None,
+        providers=None,
     ):
         query_transform_config = config.query_transform or QueryTransformConfig(
             type=QueryTransformType.NOOP
@@ -40,9 +42,21 @@ class RetrievalFactory:
             type=FusionType.NOOP
         )
 
+        # Resolve provider for query transform if configured
+        provider = None
+        if query_transform_config.provider and providers:
+            provider_config = providers.get(query_transform_config.provider)
+            if provider_config:
+                provider = ProviderFactory.create_provider(
+                    provider_name=query_transform_config.provider,
+                    provider_type=provider_config.type,
+                    config=provider_config
+                )
+
         return RetrievalPipeline(
             query_transform=QueryTransformFactory.create_query_transform(
-                query_transform_config
+                query_transform_config,
+                provider=provider
             ),
             search=SearchFactory.create_search_pipeline(
                 config.search,

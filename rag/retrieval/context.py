@@ -7,6 +7,8 @@ class RetrievalContext:
 
     query: str
     transformed_query: str | None = None
+    dense_queries: list[str] = field(default_factory=list)
+    sparse_queries: list[str] = field(default_factory=list)
     search_results: list[list[dict]] = field(default_factory=list)
     fused_results: list[dict] = field(default_factory=list)
     results: list[dict] = field(default_factory=list)

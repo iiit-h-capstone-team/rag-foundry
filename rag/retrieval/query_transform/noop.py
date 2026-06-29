@@ -8,5 +8,8 @@ class NoOpQueryTransformStrategy(QueryTransformStrategy):
         self.config = config
 
     def run(self, ctx):
+        # Pass original query through unchanged
+        ctx.dense_queries = [ctx.query]
+        ctx.sparse_queries = [ctx.query]
         ctx.transformed_query = ctx.query
         return ctx
