@@ -5,15 +5,6 @@ from enum import Enum
 from typing import Dict, Any, Optional
 
 from .enums import (
-    ChunkingType,
-    EmbeddingType,
-    QueryTransformType,
-    SearchType,
-    FusionType,
-    RerankerType,
-    VectorStoreType,
-    GenerationType,
-    EvaluationType,
     ProviderType,
     Mode
 )
@@ -48,318 +39,23 @@ def _serialize_value(value: Any) -> Any:
     return value
 
 
-@dataclass
-class ProviderConfig:
-    """
-    Configuration for LLM providers.
-
-    Credentials are resolved at provider-initialization time from the
-    environment variable named by ``api_key_env`` (e.g. ``GROQ_API_KEY``,
-    ``OPENAI_API_KEY``). Environment variable names are never hardcoded in the
-    provider layer; each provider declares its own via this field.
-    """
-
-    type: ProviderType
-    api_key_env: Optional[str] = None
-    params: Dict[str, Any] = field(default_factory=dict)
-
-    def __post_init__(self):
-        self.type = ProviderType(self.type)
+from providers.config import ProviderConfig
 
 
-# ---------------------------------------------------------------------------
-# Chunking
-# ---------------------------------------------------------------------------
-@dataclass
-class SentenceChunkingConfig:
-    """Tunables for the sentence chunking strategy."""
-    max_words: int = 100
-    overlap_sentences: int = 1
-
-
-@dataclass
-class FixedWindowChunkingConfig:
-    """Tunables for the fixed-window chunking strategy."""
-    window_size: int = 256
-    overlap: int = 50
-
-
-@dataclass
-class TokenChunkingConfig:
-    """Tunables for the token chunking strategy."""
-    max_tokens: int = 200
-    overlap_tokens: int = 20
-
-@dataclass
-class SemanticChunkingConfig:
-    embedding: EmbeddingConfig
-    max_words: int = 256
-    similarity_threshold: float = 0.8
-    overlap_sentences: int = 1
-    similarity_window: int = 5
-
-    def __post_init__(self):
-        self.embedding = _coerce(self.embedding, EmbeddingConfig)
-
-
-_CHUNKING_CONFIGS = {
-    ChunkingType.SENTENCE: SentenceChunkingConfig,
-    ChunkingType.FIXED_WINDOW: FixedWindowChunkingConfig,
-    ChunkingType.TOKEN: TokenChunkingConfig,
-    ChunkingType.SEMANTIC: SemanticChunkingConfig,
-}
-
-
-@dataclass
-class ChunkingConfig:
-    """Chunking section: which strategy plus its own typed config."""
-    type: ChunkingType
-    config: Any = None
-
-    def __post_init__(self):
-        self.type = ChunkingType(self.type)
-        self.config = _coerce(self.config, _CHUNKING_CONFIGS[self.type])
-
-
-# ---------------------------------------------------------------------------
-# Embedding
-# ---------------------------------------------------------------------------
-@dataclass
-class SentenceTransformerEmbeddingConfig:
-    """Tunables for the sentence-transformer embedding strategy."""
-    model_name: Optional[str] = None
-    model: Optional[str] = None
-    dimension: int = 768
-
-
-@dataclass
-class OpenAIEmbeddingConfig:
-    """Tunables for the OpenAI embedding strategy."""
-    model: Optional[str] = None
-    model_name: Optional[str] = None
-    dimension: int = 1536
-
-
-@dataclass
-class OllamaEmbeddingConfig:
-    """Tunables for the Ollama embedding strategy."""
-    model_name: Optional[str] = None
-    model: Optional[str] = None
-    dimension: int = 768
-    base_url: str = "http://localhost:11434"
-
-
-@dataclass
-class CohereEmbeddingConfig:
-    """Tunables for the Cohere embedding strategy."""
-    model_name: Optional[str] = None
-    model: Optional[str] = None
-    dimension: int = 1024
-    input_type: str = "search_document"
-
-
-@dataclass
-class VoyageEmbeddingConfig:
-    """Tunables for the Voyage AI embedding strategy."""
-    model_name: Optional[str] = None
-    model: Optional[str] = None
-    dimension: int = 1024
-    input_type: Optional[str] = None
-
-
-@dataclass
-class HuggingFaceEmbeddingConfig:
-    """Tunables for the HuggingFace Inference embedding strategy."""
-    model_name: Optional[str] = None
-    model: Optional[str] = None
-    dimension: int = 768
-    api_url: Optional[str] = None
-
-
-@dataclass
-class MedCPTEmbeddingConfig:
-    """Tunables for the MedCPT embedding strategy (dual encoder)."""
-    query_model_name: str = "ncbi/MedCPT-Query-Encoder"
-    article_model_name: str = "ncbi/MedCPT-Article-Encoder"
-    dimension: int = 768
-
-
-_EMBEDDING_CONFIGS = {
-    EmbeddingType.SENTENCE_TRANSFORMER: SentenceTransformerEmbeddingConfig,
-    EmbeddingType.OPENAI: OpenAIEmbeddingConfig,
-    EmbeddingType.OLLAMA: OllamaEmbeddingConfig,
-    EmbeddingType.COHERE: CohereEmbeddingConfig,
-    EmbeddingType.VOYAGE: VoyageEmbeddingConfig,
-    EmbeddingType.HUGGINGFACE: HuggingFaceEmbeddingConfig,
-    EmbeddingType.MEDCPT: MedCPTEmbeddingConfig,
-}
-
-
-@dataclass
-class EmbeddingConfig:
-    """Embedding section: which strategy plus its own typed config."""
-    type: EmbeddingType
-    config: Any = None
-
-    def __post_init__(self):
-        self.type = EmbeddingType(self.type)
-        self.config = _coerce(self.config, _EMBEDDING_CONFIGS[self.type])
 
 
 # ---------------------------------------------------------------------------
 # Vector store
 # ---------------------------------------------------------------------------
-@dataclass
-class FaissVectorStoreConfig:
-    """Tunables for the FAISS vector store."""
-    dimension: int = 768
-
-
-_VECTORSTORE_CONFIGS = {
-    VectorStoreType.FAISS: FaissVectorStoreConfig,
-}
-
-
-@dataclass
-class VectorStoreConfig:
-    """Vector store section: which store plus its own typed config."""
-    type: VectorStoreType
-    config: Any = None
-
-    def __post_init__(self):
-        self.type = VectorStoreType(self.type)
-        self.config = _coerce(self.config, _VECTORSTORE_CONFIGS[self.type])
+from vectorstore.config import VectorStoreConfig
 
 
 # ---------------------------------------------------------------------------
 # Retrieval pipeline
 # ---------------------------------------------------------------------------
-@dataclass
-class NoOpQueryTransformConfig:
-    """No-op query transform; passes the query through unchanged."""
-
-
-@dataclass
-class HyDEQueryTransformConfig:
-    """HyDE (Hypothetical Document Embeddings) query transform config."""
-    model: str
-    temperature: float = 0.2
-    max_tokens: int = 256
-
-
-@dataclass
-class MultiQueryQueryTransformConfig:
-    """MultiQuery query transform config."""
-    model: str
-    temperature: float = 0.7
-    num_queries: int = 4
-    max_tokens: int = 128
-
-
-@dataclass
-class StepBackQueryTransformConfig:
-    """Step-Back prompting query transform config."""
-    model: str
-    temperature: float = 0.3
-    max_tokens: int = 128
-
-
-@dataclass
-class DenseSearchConfig:
-    """Tunables for dense vector search."""
-    top_k: int = 5
-
-
-@dataclass
-class SparseSearchConfig:
-    """Tunables for sparse (BM25) search."""
-    top_k: int = 5
-
-
-@dataclass
-class NoOpFusionConfig:
-    """No-op fusion; passes a single search list through unchanged."""
-
-
-@dataclass
-class RRFFusionConfig:
-    """Tunables for reciprocal rank fusion."""
-    top_k: int = 5
-    k: int = 60
-
-
-@dataclass
-class WeightedSumFusionConfig:
-    """Tunables for weighted score fusion across search lists."""
-    top_k: int = 5
-    weights: list = field(default_factory=list)
-
-
-_QUERY_TRANSFORM_CONFIGS = {
-    QueryTransformType.NOOP: NoOpQueryTransformConfig,
-    QueryTransformType.HYDE: HyDEQueryTransformConfig,
-    QueryTransformType.MULTI_QUERY: MultiQueryQueryTransformConfig,
-    QueryTransformType.STEP_BACK: StepBackQueryTransformConfig,
-}
-
-_SEARCH_CONFIGS = {
-    SearchType.DENSE: DenseSearchConfig,
-    SearchType.SPARSE: SparseSearchConfig,
-}
-
-_FUSION_CONFIGS = {
-    FusionType.NOOP: NoOpFusionConfig,
-    FusionType.RRF: RRFFusionConfig,
-    FusionType.WEIGHTED_SUM: WeightedSumFusionConfig,
-}
-
-
-@dataclass
-class QueryTransformConfig:
-    """Query-transform stage inside the retrieval pipeline."""
-    type: QueryTransformType
-    provider: str | None = None
-    config: Any = None
-
-    def __post_init__(self):
-        self.type = QueryTransformType(self.type)
-        self.config = _coerce(self.config, _QUERY_TRANSFORM_CONFIGS[self.type])
-
-
-@dataclass
-class SearchStrategyConfig:
-    """One search strategy entry inside the search sub-pipeline."""
-    type: SearchType
-    config: Any = None
-
-    def __post_init__(self):
-        self.type = SearchType(self.type)
-        self.config = _coerce(self.config, _SEARCH_CONFIGS[self.type])
-
-
-@dataclass
-class SearchPipelineConfig:
-    """Search sub-pipeline: one or more search strategies (mandatory)."""
-    searches: list
-
-    def __post_init__(self):
-        if not self.searches:
-            raise ValueError("retrieval.search.searches must contain at least one search")
-        self.searches = [
-            item if isinstance(item, SearchStrategyConfig) else SearchStrategyConfig(**item)
-            for item in self.searches
-        ]
-
-
-@dataclass
-class FusionConfig:
-    """Fusion stage inside the retrieval pipeline."""
-    type: FusionType
-    config: Any = None
-
-    def __post_init__(self):
-        self.type = FusionType(self.type)
-        self.config = _coerce(self.config, _FUSION_CONFIGS[self.type])
+from rag.modules.query_transform.config import QueryTransformConfig
+from rag.modules.search.config import SearchStrategyConfig, SearchPipelineConfig
+from rag.modules.fusion.config import FusionConfig
 
 
 @dataclass
@@ -389,121 +85,26 @@ class RetrievalConfig:
 # ---------------------------------------------------------------------------
 # Reranker
 # ---------------------------------------------------------------------------
-@dataclass
-class CrossEncoderRerankerConfig:
-    """Tunables for the cross-encoder reranker."""
-    model_name: Optional[str] = None
-    top_k: int = 5
-
-
-@dataclass
-class CohereRerankerConfig:
-    """Tunables for the Cohere reranker."""
-    model_name: Optional[str] = None
-    model: Optional[str] = None
-    top_n: int = 10
-
-
-@dataclass
-class VoyageRerankerConfig:
-    """Tunables for the Voyage AI reranker."""
-    model_name: Optional[str] = None
-    model: Optional[str] = None
-    top_k: int = 10
-
-
-@dataclass
-class JinaRerankerConfig:
-    """Tunables for the Jina AI reranker."""
-    model_name: Optional[str] = None
-    model: Optional[str] = None
-    top_n: int = 10
-
-
-@dataclass
-class MixedBreadRerankerConfig:
-    """Tunables for the MixedBread AI reranker."""
-    model_name: Optional[str] = None
-    model: Optional[str] = None
-    top_n: int = 10
-
-
-_RERANKER_CONFIGS = {
-    RerankerType.CROSS_ENCODER: CrossEncoderRerankerConfig,
-    RerankerType.COHERE: CohereRerankerConfig,
-    RerankerType.VOYAGE: VoyageRerankerConfig,
-    RerankerType.JINA: JinaRerankerConfig,
-    RerankerType.MIXEDBREAD: MixedBreadRerankerConfig,
-}
-
-
-@dataclass
-class RerankerConfig:
-    """Reranker section: which strategy plus its own typed config."""
-    type: RerankerType
-    config: Any = None
-
-    def __post_init__(self):
-        self.type = RerankerType(self.type)
-        self.config = _coerce(self.config, _RERANKER_CONFIGS[self.type])
+from rag.modules.reranking.config import RerankingConfig as RerankerConfig
+from rag.modules.reranking.strategies.cross_encoder.config import CrossEncoderRerankingConfig as CrossEncoderRerankerConfig
+from rag.modules.reranking.strategies.cohere.config import CohereRerankingConfig as CohereRerankerConfig
+from rag.modules.reranking.strategies.voyage.config import VoyageRerankingConfig as VoyageRerankerConfig
+from rag.modules.reranking.strategies.jina.config import JinaRerankingConfig as JinaRerankerConfig
+from rag.modules.reranking.strategies.mixedbread.config import MixedBreadRerankingConfig as MixedBreadRerankerConfig
 
 
 # ---------------------------------------------------------------------------
 # Generation
 # ---------------------------------------------------------------------------
-@dataclass
-class DefaultGenerationConfig:
-    """Tunables for the default generation strategy."""
-    model: str
-    max_tokens: int = 1024
-    temperature: float = 0.7
-    system_prompt: Optional[str] = None
-    user_prompt: Optional[str] = None
-
-
-_GENERATION_CONFIGS = {
-    GenerationType.DEFAULT: DefaultGenerationConfig,
-}
-
-
-@dataclass
-class GenerationConfig:
-    """Generation section: strategy + provider dependency + typed config."""
-    strategy: GenerationType
-    provider: str
-    config: Any = None
-
-    def __post_init__(self):
-        self.strategy = GenerationType(self.strategy)
-        self.config = _coerce(self.config, _GENERATION_CONFIGS[self.strategy])
+from rag.modules.generation.config import GenerationConfig
+from rag.modules.generation.strategies.default.config import DefaultGenerationConfig
 
 
 # ---------------------------------------------------------------------------
 # Evaluation
 # ---------------------------------------------------------------------------
-@dataclass
-class TRACeEvaluationConfig:
-    """Tunables for the TRACe evaluation strategy."""
-    model: str = "llama-3.3-70b-versatile"
-    max_tokens: int = 2000
-    temperature: float = 0.0
-
-
-_EVALUATION_CONFIGS = {
-    EvaluationType.TRACE: TRACeEvaluationConfig,
-}
-
-
-@dataclass
-class EvaluationConfig:
-    """Evaluation section: strategy + provider dependency + typed config."""
-    type: EvaluationType
-    provider: str
-    config: Any = None
-
-    def __post_init__(self):
-        self.type = EvaluationType(self.type)
-        self.config = _coerce(self.config, _EVALUATION_CONFIGS[self.type])
+from evaluation.config import EvaluationConfig
+from evaluation.strategies.trace.config import TRACeEvaluationConfig
 
 
 @dataclass
@@ -541,7 +142,7 @@ class RAGConfig:
 
     generation: GenerationConfig
 
-    evaluation: EvaluationConfig
+    evaluation: Optional[EvaluationConfig] = None
 
     mode: Mode = Mode.DEV
 
@@ -583,7 +184,7 @@ class RAGConfig:
             'vector_store': self._section_to_dict(self.vector_store),
             'retrieval': self._section_to_dict(self.retrieval),
             'generation': self._section_to_dict(self.generation),
-            'evaluation': self._section_to_dict(self.evaluation),
+            'evaluation': self._section_to_dict(self.evaluation) if self.evaluation else None,
             'cache': self._section_to_dict(self.cache),
             'start_index': self.start_index,
             'end_index': self.end_index,
@@ -593,6 +194,8 @@ class RAGConfig:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'RAGConfig':
         """Create config from dictionary."""
+        from rag.modules.chunking.config import ChunkingConfig
+        from embedding.config import EmbeddingConfig
         return cls(
             name=data.get('name', 'default'),
             mode=data.get('mode', Mode.DEV),
@@ -605,7 +208,7 @@ class RAGConfig:
             vector_store=VectorStoreConfig(**data.get('vector_store', {})),
             retrieval=RetrievalConfig(**data.get('retrieval', {})),
             generation=GenerationConfig(**data.get('generation', {})),
-            evaluation=EvaluationConfig(**data.get('evaluation', {})),
+            evaluation=EvaluationConfig(**data['evaluation']) if data.get('evaluation') else None,
             cache=CacheConfig(**data['cache']) if data.get('cache') else CacheConfig(),
             start_index=data.get('start_index'),
             end_index=data.get('end_index'),

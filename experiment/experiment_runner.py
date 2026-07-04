@@ -10,13 +10,10 @@ from experiment.comparison import ComparisonReport
 from experiment.metadata import ExperimentMetadata, ExperimentStatus
 from experiment.progress_reporter import ProgressReporter
 from rag.persistence.jsonl_writer import JSONLWriter
-from ingestion import (
-    DataProcessor,
-    DatasetLoadingConfig,
-    ParserFactory,
-    ParserType,
-)
-from ingestion.loaders.huggingface_loader import HuggingFaceLoader
+from data_sources.processors import DataProcessor
+from data_sources.loaders.base import DatasetLoadingConfig
+from data_sources.loaders.enums import LoaderType
+from parsers import parser_registry, ParserType
 from rag.config.enums import Mode
 from rag.config.loader import ConfigLoader
 from rag.models.pipeline_run_result import PipelineRunResult
@@ -25,7 +22,7 @@ from rag.pipeline.rag_pipeline import RAGPipeline
 
 from reporting import (
     ReportGenerator,
-    ReportStrategyFactory,
+    report_registry,
 )
 
 
@@ -83,32 +80,25 @@ class ExperimentRunner:
         loader_type = loader_config.get("type")
         loader_params = loader_config.get("config", {})
         
-        # Create loader based on type
-        if loader_type == "huggingface":
-            dataset_name = loader_params.get("dataset_name")
-            subset = loader_params.get("subset")
-            split = loader_params.get("split", "train")
-            limit = loader_params.get("limit")
-            hf_token = loader_params.get("hf_token")
-            
-            loading_config = DatasetLoadingConfig(
-                limit=limit,
-                use_cache=True,
-                cache_dir=str(self.config.cache_dir) if self.config.cache_dir else None
-            )
-            
-            loader = HuggingFaceLoader(
-                dataset_name=dataset_name,
-                subset=subset,
-                split=split,
-                config=loading_config,
-                hf_token=hf_token
-            )
-        else:
-            raise ValueError(
-                f"Unknown loader type: {loader_type}. "
-                f"Supported types: huggingface"
-            )
+        # Create loader via registry
+        from data_sources.loaders.registry import loader_registry
+        # Trigger registration of HuggingFaceLoader
+        from data_sources.loaders.huggingface_loader import HuggingFaceLoader  # noqa: F401
+        
+        loading_config = DatasetLoadingConfig(
+            limit=loader_params.get("limit"),
+            use_cache=True,
+            cache_dir=str(self.config.cache_dir) if self.config.cache_dir else None
+        )
+        
+        loader = loader_registry.create(
+            loader_type,
+            dataset_name=loader_params.get("dataset_name"),
+            subset=loader_params.get("subset"),
+            split=loader_params.get("split", "train"),
+            config=loading_config,
+            hf_token=loader_params.get("hf_token"),
+        )
         
         # Load raw data
         raw_data = loader.load()
@@ -117,14 +107,13 @@ class ExperimentRunner:
         if self.config.data_parser:
             parser_type_str = self.config.data_parser
             try:
-                parser_type = ParserType(parser_type_str)
-                parser = ParserFactory.create_parser(parser_type)
+                parser = parser_registry.create(parser_type_str)
                 processor = DataProcessor(parser_strategy=parser)
                 documents = processor.process_dataset(raw_data)
-            except ValueError:
+            except (ValueError, KeyError):
                 raise ValueError(
                     f"Unknown parser type: {parser_type_str}. "
-                    f"Available parsers: {ParserFactory.available_parsers()}"
+                    f"Available parsers: {parser_registry.registered_keys()}"
                 )
         else:
             # If no parser specified, return empty documents list
@@ -187,40 +176,88 @@ class ExperimentRunner:
         progress_reporter.start()
         
         # Submit query tasks to ThreadPoolExecutor
-        max_workers = self.config.max_workers
+        query_workers = self.config.query_workers
         
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = []
-            for i in range(start_index, end_index):
-                sample = raw_data[i]
-                # Extract ground truth scores
-                ground_truth = {
-                    "relevance_score": sample.get("relevance_score", 0.0),
-                    "utilization_score": sample.get("utilization_score", 0.0),
-                    "completeness_score": sample.get("completeness_score", 0.0),
-                    "adherence_score": sample.get("adherence_score", False),
-                }
-                future = executor.submit(
-                    pipeline.query,
-                    sample["question"],
-                    i,
-                    ground_truth
-                )
-                futures.append(future)
+        # Build ground truth map for all indices
+        def _ground_truth(sample):
+            has_scores = any(
+                key in sample
+                for key in ["relevance_score", "utilization_score", "completeness_score", "adherence_score"]
+            )
+            if not has_scores:
+                return None
+            return {
+                "relevance_score": sample.get("relevance_score", 0.0),
+                "utilization_score": sample.get("utilization_score", 0.0),
+                "completeness_score": sample.get("completeness_score", 0.0),
+                "adherence_score": sample.get("adherence_score", False),
+            }
+        
+        PERMANENT_ERROR = "AllKeysExhaustedException"
+        
+        def _submit_and_collect(indices):
+            """Submit queries for given indices and return (successes, permanent, retryable)."""
+            failed_retryable = []
+            with ThreadPoolExecutor(max_workers=query_workers) as executor:
+                futures = {}
+                for i in indices:
+                    sample = raw_data[i]
+                    future = executor.submit(
+                        pipeline.query,
+                        sample["question"],
+                        i,
+                        _ground_truth(sample)
+                    )
+                    futures[future] = i
+                
+                for future in as_completed(futures):
+                    idx = futures[future]
+                    try:
+                        result = future.result()
+                        jsonl_writer.put(result)
+                        # Check if the pipeline returned a failure result
+                        if result.metadata.get("status") == "failed":
+                            error_type = result.metadata.get("error_type", "")
+                            if error_type != PERMANENT_ERROR:
+                                failed_retryable.append(idx)
+                    except Exception as e:
+                        print(f"Error in worker (index {idx}): {e}")
+                        failed_retryable.append(idx)
+            return failed_retryable
+        
+        # Initial run
+        all_indices = list(range(start_index, end_index))
+        # Filter out already-completed indices (resume support)
+        pending_indices = [i for i in all_indices if i not in jsonl_writer._completed_indices]
+        retryable = _submit_and_collect(pending_indices)
+        
+        # Retry loop for transient failures
+        for retry_round in range(1, self.config.max_retry_rounds + 1):
+            if not retryable:
+                break
+            print(
+                f"[{config.name}] Retry round {retry_round}/{self.config.max_retry_rounds}: "
+                f"{len(retryable)} retryable failures, waiting {self.config.retry_delay_seconds}s..."
+            )
+            time.sleep(self.config.retry_delay_seconds)
             
-            # Wait for all futures to complete and write results
-            for future in as_completed(futures):
-                try:
-                    result = future.result()
-                    jsonl_writer.put(result)
-                except Exception as e:
-                    print(f"Error in worker: {e}")
+            # Clear retryable indices so the writer will accept new records
+            for idx in retryable:
+                jsonl_writer.clear_index(idx)
+            
+            retryable = _submit_and_collect(retryable)
+        
+        if retryable:
+            print(f"[{config.name}] {len(retryable)} queries still failed after all retry rounds")
         
         # Stop progress reporter
         progress_reporter.stop()
         
         # Stop writer thread
         jsonl_writer.stop()
+        
+        # Deduplicate JSONL (keep last record per index)
+        jsonl_writer.deduplicate()
         
         # Update metadata
         metadata.update_status(ExperimentStatus.COMPLETED)
@@ -273,13 +310,120 @@ class ExperimentRunner:
                 runs.append(run)
         return runs
 
+    def _get_eval_config_and_register(self, rag_config=None):
+        """Build EvaluationConfig and register its provider.
+        
+        Uses experiment-level evaluation config if set, otherwise
+        falls back to the per-config evaluation section.
+        
+        Args:
+            rag_config: Optional RAGConfig to fall back to for evaluation
+                        config and provider registration.
+        
+        Returns:
+            EvaluationConfig or None
+        """
+        from evaluation.config import EvaluationConfig
+        from providers.provider_manager import ProviderManager
+        
+        eval_cfg = None
+        
+        if self.config.evaluation:
+            eval_cfg = EvaluationConfig(**self.config.evaluation)
+        elif rag_config and rag_config.evaluation:
+            eval_cfg = rag_config.evaluation
+        
+        if eval_cfg is None:
+            return None
+        
+        # Register the provider from any available RAG config
+        if eval_cfg.provider:
+            # Try to register from the given rag_config's providers
+            if rag_config and rag_config.providers:
+                provider_config = rag_config.providers.get(eval_cfg.provider)
+                if provider_config:
+                    ProviderManager.register(
+                        provider_name=eval_cfg.provider,
+                        provider_type=provider_config.type,
+                        config=provider_config,
+                    )
+        
+        return eval_cfg
+
+    def evaluate_runs(self, runs, parallel_runs=False, parallel_config_run=False):
+        """Run offline evaluation on JSONL files produced by the pipeline.
+
+        For each run, reads the generation JSONL, evaluates each record
+        using the experiment-level evaluation config (or per-config fallback),
+        and writes an enriched JSONL with predicted_scores.
+
+        Args:
+            runs: List of run dicts from run() or evaluate_config().
+            parallel_runs: If True, evaluate multiple configs in parallel.
+            parallel_config_run: If True, evaluate records within each
+                                 config in parallel.
+        """
+        if parallel_runs:
+            return self._evaluate_runs_parallel(runs, parallel_config_run)
+        return self._evaluate_runs_sequential(runs, parallel_config_run)
+
+    def _evaluate_single_run(self, run, parallel_config_run=False):
+        """Evaluate a single run dict. Used by both sequential and parallel paths."""
+        from evaluation.runner import EvaluationRunner
+
+        config = run["config"]
+        jsonl_path = run["jsonl_path"]
+
+        eval_cfg = self._get_eval_config_and_register(rag_config=config)
+        if eval_cfg is None:
+            print(f"[{config.name}] No evaluation config — skipping evaluation")
+            return run
+
+        max_workers = self.config.query_workers if parallel_config_run else 1
+        eval_runner = EvaluationRunner(eval_cfg)
+        evaluated_path = eval_runner.evaluate_jsonl(
+            input_path=jsonl_path,
+            output_path=jsonl_path,
+            max_workers=max_workers,
+        )
+
+        run["jsonl_path"] = evaluated_path
+        print(f"[{config.name}] Evaluation complete → {evaluated_path}")
+        return run
+
+    def _evaluate_runs_sequential(self, runs, parallel_config_run=False):
+        """Evaluate runs one config at a time."""
+        return [
+            self._evaluate_single_run(run, parallel_config_run)
+            for run in runs
+        ]
+
+    def _evaluate_runs_parallel(self, runs, parallel_config_run=False):
+        """Evaluate runs across configs in parallel."""
+        evaluated_runs = []
+        with ThreadPoolExecutor(max_workers=self.config.max_workers) as executor:
+            futures = {
+                executor.submit(
+                    self._evaluate_single_run, run, parallel_config_run
+                ): run
+                for run in runs
+            }
+            for future in as_completed(futures):
+                try:
+                    evaluated_runs.append(future.result())
+                except Exception as e:
+                    run = futures[future]
+                    print(f"[{run['config'].name}] Evaluation failed: {e}")
+                    evaluated_runs.append(run)
+        return evaluated_runs
+
     def generate_reports(
         self,
         runs,
     ):
         """Generate reports from JSONL files instead of in-memory results."""
-        # Create report strategy using factory pattern
-        strategy = ReportStrategyFactory.create_strategy(
+        # Create report strategy using registry
+        strategy = report_registry.create(
             self.config.report_strategy
         )
         
@@ -331,6 +475,64 @@ class ExperimentRunner:
                     continue
         
         return records
+
+    def evaluate_config(self, config_name: str, parallel: bool = False) -> dict:
+        """Evaluate a single config by name.
+        
+        Finds the JSONL at temp_dir/<config_name>.jsonl, registers the
+        evaluation provider, and runs EvaluationRunner.evaluate_jsonl().
+        Uses experiment-level evaluation config if set, otherwise falls
+        back to per-config. Caching is built-in — already-scored records
+        are skipped.
+        
+        Args:
+            config_name: Name of the config to evaluate
+            parallel: If True, evaluate records within this config
+                      in parallel using query_workers threads.
+            
+        Returns:
+            Run dict with config and jsonl_path
+        """
+        from evaluation.runner import EvaluationRunner
+        
+        # Find the config
+        configs = self.load_configs()
+        config = None
+        for cfg in configs:
+            if cfg.name == config_name:
+                config = cfg
+                break
+        if config is None:
+            raise ValueError(
+                f"Config '{config_name}' not found. "
+                f"Available: {[c.name for c in configs]}"
+            )
+        
+        jsonl_path = self.config.temp_dir / f"{config_name}.jsonl"
+        if not jsonl_path.exists():
+            raise FileNotFoundError(
+                f"JSONL file not found at {jsonl_path}. Run generation first."
+            )
+        
+        eval_cfg = self._get_eval_config_and_register(rag_config=config)
+        if eval_cfg is None:
+            print(f"[{config_name}] No evaluation config — skipping")
+            return {"config_name": config_name, "config": config, "jsonl_path": jsonl_path}
+        
+        max_workers = self.config.query_workers if parallel else 1
+        eval_runner = EvaluationRunner(eval_cfg)
+        evaluated_path = eval_runner.evaluate_jsonl(
+            input_path=jsonl_path,
+            output_path=jsonl_path,
+            max_workers=max_workers,
+        )
+        
+        print(f"[{config_name}] Evaluation complete → {evaluated_path}")
+        return {
+            "config_name": config_name,
+            "config": config,
+            "jsonl_path": evaluated_path,
+        }
 
     def compare(self):
         comparison = ComparisonReport.from_directory(

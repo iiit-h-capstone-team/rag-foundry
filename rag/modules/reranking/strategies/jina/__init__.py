@@ -1,0 +1,1 @@
+"""Jina reranking strategy."""

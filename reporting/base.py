@@ -14,6 +14,7 @@ import json
 
 import pandas as pd
 
+from core.strategy import BaseStrategy
 from rag.models.pipeline_run_result import PipelineRunResult
 
 @dataclass
@@ -219,7 +220,7 @@ class Report:
             sections=[section],
         )
 
-class ReportStrategy(ABC):
+class ReportStrategy(BaseStrategy):
     """Turn raw pipeline runs into a :class:`Report`.
 
     Concrete strategies decide what the report looks like (which columns,

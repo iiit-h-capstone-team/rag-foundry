@@ -7,17 +7,21 @@ from typing import Optional, Dict, Any
 import numpy as np
 
 from rag.cache.cache_manager import CacheManager
-from rag.chunking.chunking_factory import ChunkingFactory
+from rag.modules.chunking import chunking_registry
+from embedding import embedding_registry
 from rag.config.config import RAGConfig
 from rag.config.enums import Mode
-from rag.embedding.embedding_factory import EmbeddingFactory
-from rag.evaluation.evaluator_factory import EvaluatorFactory
-from rag.generation.generator_factory import GeneratorFactory
+from rag.modules.generation import generation_registry, GenerationType
 from rag.models.document import Document
 from rag.models.query_result import QueryResult
 from providers.provider_manager import ProviderManager
-from rag.retrieval.retrieval_factory import RetrievalFactory
-from rag.vectorstores.vectorstore_factory import VectorStoreFactory
+from rag.modules.reranking import reranking_registry
+from vectorstore import vectorstore_registry
+from rag.modules.query_transform import query_transform_registry
+from rag.modules.search import search_registry, SearchPipelineConfig
+from rag.modules.fusion import fusion_registry
+from rag.pipeline.retrieval_pipeline import RetrievalPipeline
+from rag.pipeline.search_pipeline import SearchPipeline
 
 logger = logging.getLogger(__name__)
 
@@ -96,52 +100,90 @@ class RAGPipeline:
         """Initialize all strategies from config."""
 
         # Chunking
-        self.chunker = ChunkingFactory.create_chunker(
-            self.config.chunking
+        self.chunker = chunking_registry.create(
+            self.config.chunking.type,
+            config=self.config.chunking.config
         )
 
         # Embedding
-        self.embedder = EmbeddingFactory.create_embedder(
-            self.config.embedding
+        self.embedder = embedding_registry.create(
+            self.config.embedding.type,
+            config=self.config.embedding.config
         )
 
         # Vector Store
-        self.vector_store = VectorStoreFactory.create_vectorstore(
-            self.config.vector_store
+        self.vector_store = vectorstore_registry.create(
+            self.config.vector_store.type,
+            config=self.config.vector_store.config
         )
 
         # Retrieval pipeline
-        self.retriever = RetrievalFactory.create_retrieval_pipeline(
-            config=self.config.retrieval,
-            embedder=self.embedder,
-            vector_store=self.vector_store,
-            bm25_store=None,
-            providers=self.config.providers,
+        # Query transform
+        query_transform_config = self.config.retrieval.query_transform
+        provider = None
+        if query_transform_config and query_transform_config.provider:
+            provider_config = self.config.providers.get(query_transform_config.provider)
+            if provider_config:
+                provider = ProviderManager.get_provider(query_transform_config.provider)
+        
+        query_transform = query_transform_registry.create(
+            query_transform_config.type if query_transform_config else "noop",
+            config=query_transform_config.config if query_transform_config else {},
+            provider=provider
+        )
+
+        # Search pipeline
+        search_strategies = []
+        for search_config in self.config.retrieval.search.searches:
+            strategy = search_registry.create(
+                search_config.type,
+                config=search_config.config,
+                embedder=self.embedder,
+                vector_store=self.vector_store,
+                bm25_store=None,
+            )
+            search_strategies.append(strategy)
+        
+        search_pipeline = SearchPipeline(search_strategies)
+
+        # Fusion
+        fusion_config = self.config.retrieval.fusion
+        fusion = fusion_registry.create(
+            fusion_config.type if fusion_config else "noop",
+            config=fusion_config.config if fusion_config else {}
+        )
+
+        # Reranker (optional)
+        reranker = None
+        if self.config.retrieval.rerank:
+            rerank_config = self.config.retrieval.rerank
+            rerank_provider = ProviderManager.get_provider(
+                self.config.providers.get(list(self.config.providers.keys())[0]).type.value
+            ) if self.config.providers else None
+            reranker = reranking_registry.create(
+                rerank_config.type,
+                config=rerank_config.config,
+                provider=rerank_provider
+            )
+
+        self.retriever = RetrievalPipeline(
+            query_transform=query_transform,
+            search_pipeline=search_pipeline,
+            fusion=fusion,
+            reranker=reranker,
         )
 
         # Generation
-        
-        generation_provider = (
-            ProviderManager.get_provider(
-                self.config.generation.provider
-            )
+        generation_provider = ProviderManager.get_provider(
+            self.config.generation.provider
         )
 
-        self.generator = GeneratorFactory.create_generator(
-            config=self.config.generation,
+        self.generator = generation_registry.create(
+            self.config.generation.strategy,
+            config=self.config.generation.config,
             provider=generation_provider
         )
 
-        # Evaluation
-        evaluation_provider = (
-            ProviderManager.get_provider(
-                self.config.evaluation.provider
-            )
-        )
-        self.evaluator = EvaluatorFactory.create_evaluator(
-            config=self.config.evaluation,
-            provider=evaluation_provider
-        )
 
     def build_index(self, documents: list[Document]):
         """Build the vector index, reusing cached stages where possible.
@@ -244,29 +286,16 @@ class RAGPipeline:
             generation_ms = (time.time() - generation_start) * 1000
             logger.debug("Response generated (%d chars)", len(response))
 
-            # 3. Evaluate
-            logger.debug("Evaluating response...")
-            evaluation_start = time.time()
-            scores = self.evaluator.evaluate(
-                query=query,
-                retrieved_docs=retrieved_docs,
-                response=response,
-            )
-            evaluation_ms = (time.time() - evaluation_start) * 1000
-            logger.debug("Evaluation complete")
-
             total_ms = (time.time() - total_start) * 1000
 
             # Store latencies and metadata
             metadata["latencies"] = {
                 "retrieval_ms": retrieval_ms,
                 "generation_ms": generation_ms,
-                "evaluation_ms": evaluation_ms,
                 "total_ms": total_ms
             }
             metadata["query_index"] = query_index
             metadata["status"] = "success"
-            metadata["predicted_scores"] = scores
             
             if ground_truth:
                 metadata["ground_truth"] = ground_truth
@@ -299,6 +328,7 @@ class RAGPipeline:
             metadata["query_index"] = query_index
             metadata["status"] = "failed"
             metadata["error"] = traceback.format_exc()
+            metadata["error_type"] = type(e).__name__
             
             if ground_truth:
                 metadata["ground_truth"] = ground_truth
@@ -325,20 +355,11 @@ class RAGPipeline:
         print(f"\n--- Generated Response ---")
         print(result.answer[:500] + "..." if len(result.answer) > 500 else result.answer)
 
-        if "predicted_scores" in result.metadata:
-            print(f"\n--- TRACe Scores ---")
-            scores = result.metadata["predicted_scores"]
-            print(f"  Relevance:    {scores['relevance_score']:.4f}")
-            print(f"  Utilization:  {scores['utilization_score']:.4f}")
-            print(f"  Completeness: {scores['completeness_score']:.4f}")
-            print(f"  Adherence:    {scores['adherence_score']}")
-
         if "latencies" in result.metadata:
             print(f"\n--- Latencies ---")
             latencies = result.metadata["latencies"]
             print(f"  Retrieval:    {latencies.get('retrieval_ms', 0):.2f}ms")
             print(f"  Generation:   {latencies.get('generation_ms', 0):.2f}ms")
-            print(f"  Evaluation:   {latencies.get('evaluation_ms', 0):.2f}ms")
             print(f"  Total:        {latencies.get('total_ms', 0):.2f}ms")
 
         print(f"\n{'='*60}\n")

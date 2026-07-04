@@ -1,0 +1,1 @@
+"""HyDE query transform strategy."""

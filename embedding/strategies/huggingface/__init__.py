@@ -1,0 +1,1 @@
+"""HuggingFace embedding strategy."""

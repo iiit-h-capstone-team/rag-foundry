@@ -13,6 +13,16 @@ end_index: 246
 # Parallel execution configuration
 parallel: false
 max_workers: 1
+query_workers: 2
+
+# Evaluation configuration (shared across all configs)
+evaluation:
+  type: trace
+  provider: groq
+  config:
+    model: llama-3.3-70b-versatile
+    temperature: 0.0
+    max_tokens: 2000
 
 # Data loading configuration
 data_loader:

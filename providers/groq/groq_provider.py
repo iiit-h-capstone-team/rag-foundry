@@ -2,7 +2,9 @@ from datetime import datetime, timedelta
 
 from groq import Groq, RateLimitError
 
-from providers.base.provider import BaseLLMProvider
+from providers.base.strategy import ProviderStrategy
+from providers.registry import provider_registry
+from providers.enums import ProviderType
 from providers.base.key_state import KeyState
 from providers.base.exceptions import (
     AllKeysExhaustedException,
@@ -10,7 +12,8 @@ from providers.base.exceptions import (
 )
 
 
-class GroqProvider(BaseLLMProvider):
+@provider_registry.register(ProviderType.GROQ)
+class GroqProvider(ProviderStrategy):
 
     DEFAULT_COOLDOWN_SECONDS = 60
 
@@ -18,7 +21,9 @@ class GroqProvider(BaseLLMProvider):
         self,
         api_keys: list[str],
         cooldown_seconds: int = DEFAULT_COOLDOWN_SECONDS,
+        config=None,
     ):
+        super().__init__(config)
 
         if not api_keys:
             raise ProviderInitializationException(

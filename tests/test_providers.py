@@ -11,15 +11,15 @@ from rag.config.config import (
     JinaRerankerConfig,
     MixedBreadRerankerConfig,
 )
-from rag.embedding.ollama_embedding import OllamaEmbeddingStrategy
-from rag.embedding.cohere_embedding import CohereEmbeddingStrategy
-from rag.embedding.voyage_embedding import VoyageEmbeddingStrategy
-from rag.embedding.huggingface_embedding import HuggingFaceEmbeddingStrategy
-from rag.embedding.medcpt_embedding import MedCPTEmbeddingStrategy
-from rag.reranking.cohere_reranker import CohereRerankerStrategy
-from rag.reranking.voyage_reranker import VoyageRerankerStrategy
-from rag.reranking.jina_reranker import JinaRerankerStrategy
-from rag.reranking.mixedbread_reranker import MixedBreadRerankerStrategy
+from embedding.strategies.ollama.strategy import OllamaEmbeddingStrategy
+from embedding.strategies.cohere.strategy import CohereEmbeddingStrategy
+from embedding.strategies.voyage.strategy import VoyageEmbeddingStrategy
+from embedding.strategies.huggingface.strategy import HuggingFaceEmbeddingStrategy
+from embedding.strategies.medcpt.strategy import MedCPTEmbeddingStrategy
+from rag.modules.reranking.strategies.cohere.strategy import CohereRerankerStrategy
+from rag.modules.reranking.strategies.voyage.strategy import VoyageRerankerStrategy
+from rag.modules.reranking.strategies.jina.strategy import JinaRerankerStrategy
+from rag.modules.reranking.strategies.mixedbread.strategy import MixedBreadRerankerStrategy
 
 
 # =============================================================================
@@ -28,7 +28,7 @@ from rag.reranking.mixedbread_reranker import MixedBreadRerankerStrategy
 
 class TestOllamaEmbeddingStrategy:
     
-    @patch('rag.embedding.ollama_embedding.Client')
+    @patch('embedding.strategies.ollama.strategy.Client')
     def test_initialization(self, mock_client):
         config = OllamaEmbeddingConfig(
             model_name="nomic-embed-text",
@@ -38,13 +38,13 @@ class TestOllamaEmbeddingStrategy:
         assert strategy.config == config
         assert strategy.model == "nomic-embed-text"
     
-    @patch('rag.embedding.ollama_embedding.Client')
+    @patch('embedding.strategies.ollama.strategy.Client')
     def test_default_model(self, mock_client):
         config = OllamaEmbeddingConfig()
         strategy = OllamaEmbeddingStrategy(config)
         assert strategy.model == "nomic-embed-text"
     
-    @patch('rag.embedding.ollama_embedding.Client')
+    @patch('embedding.strategies.ollama.strategy.Client')
     def test_embed_single_text(self, mock_client_class):
         mock_client = Mock()
         mock_client.embed.return_value = {"embeddings": [[0.1, 0.2, 0.3]]}
@@ -60,7 +60,7 @@ class TestOllamaEmbeddingStrategy:
         )
         assert result == [[0.1, 0.2, 0.3]]
     
-    @patch('rag.embedding.ollama_embedding.Client')
+    @patch('embedding.strategies.ollama.strategy.Client')
     def test_embed_multiple_texts(self, mock_client_class):
         mock_client = Mock()
         mock_client.embed.return_value = {"embeddings": [[0.1, 0.2], [0.3, 0.4]]}
@@ -84,7 +84,7 @@ class TestOllamaEmbeddingStrategy:
 class TestCohereEmbeddingStrategy:
     
     @patch.dict('os.environ', {'COHERE_API_KEY': 'test_key'})
-    @patch('rag.embedding.cohere_embedding.cohere')
+    @patch('embedding.strategies.cohere.strategy.cohere')
     def test_initialization(self, mock_cohere):
         config = CohereEmbeddingConfig(
             model_name="embed-english-v3",
@@ -95,21 +95,21 @@ class TestCohereEmbeddingStrategy:
         assert strategy.model == "embed-english-v3"
     
     @patch.dict('os.environ', {}, clear=True)
-    @patch('rag.embedding.cohere_embedding.cohere')
+    @patch('embedding.strategies.cohere.strategy.cohere')
     def test_missing_api_key(self, mock_cohere):
         config = CohereEmbeddingConfig()
         with pytest.raises(ValueError, match="COHERE_API_KEY"):
             CohereEmbeddingStrategy(config)
     
     @patch.dict('os.environ', {'COHERE_API_KEY': 'test_key'})
-    @patch('rag.embedding.cohere_embedding.cohere')
+    @patch('embedding.strategies.cohere.strategy.cohere')
     def test_default_model(self, mock_cohere):
         config = CohereEmbeddingConfig()
         strategy = CohereEmbeddingStrategy(config)
         assert strategy.model == "embed-english-v3"
     
     @patch.dict('os.environ', {'COHERE_API_KEY': 'test_key'})
-    @patch('rag.embedding.cohere_embedding.cohere')
+    @patch('embedding.strategies.cohere.strategy.cohere')
     def test_embed(self, mock_cohere):
         mock_client = Mock()
         mock_client.embed.return_value = Mock(embeddings=[[0.1, 0.2, 0.3]])
@@ -134,7 +134,7 @@ class TestCohereEmbeddingStrategy:
 class TestVoyageEmbeddingStrategy:
     
     @patch.dict('os.environ', {'VOYAGE_API_KEY': 'test_key'})
-    @patch('rag.embedding.voyage_embedding.voyageai')
+    @patch('embedding.strategies.voyage.strategy.voyageai')
     def test_initialization(self, mock_voyageai):
         config = VoyageEmbeddingConfig(
             model_name="voyage-large-2",
@@ -145,14 +145,14 @@ class TestVoyageEmbeddingStrategy:
         assert strategy.model == "voyage-large-2"
     
     @patch.dict('os.environ', {}, clear=True)
-    @patch('rag.embedding.voyage_embedding.voyageai')
+    @patch('embedding.strategies.voyage.strategy.voyageai')
     def test_missing_api_key(self, mock_voyageai):
         config = VoyageEmbeddingConfig()
         with pytest.raises(ValueError, match="VOYAGE_API_KEY"):
             VoyageEmbeddingStrategy(config)
     
     @patch.dict('os.environ', {'VOYAGE_API_KEY': 'test_key'})
-    @patch('rag.embedding.voyage_embedding.voyageai')
+    @patch('embedding.strategies.voyage.strategy.voyageai')
     def test_embed_with_input_type(self, mock_voyageai):
         mock_client = Mock()
         mock_client.embed.return_value = Mock(embeddings=[[0.1, 0.2, 0.3]])
@@ -175,7 +175,7 @@ class TestVoyageEmbeddingStrategy:
 
 class TestHuggingFaceEmbeddingStrategy:
     
-    @patch('rag.embedding.huggingface_embedding.requests')
+    @patch('embedding.strategies.huggingface.strategy.requests')
     def test_initialization(self, mock_requests):
         config = HuggingFaceEmbeddingConfig(
             model_name="sentence-transformers/all-MiniLM-L6-v2"
@@ -184,13 +184,13 @@ class TestHuggingFaceEmbeddingStrategy:
         assert strategy.config == config
         assert strategy.model == "sentence-transformers/all-MiniLM-L6-v2"
     
-    @patch('rag.embedding.huggingface_embedding.requests')
+    @patch('embedding.strategies.huggingface.strategy.requests')
     def test_default_model(self, mock_requests):
         config = HuggingFaceEmbeddingConfig()
         strategy = HuggingFaceEmbeddingStrategy(config)
         assert strategy.model == "sentence-transformers/all-MiniLM-L6-v2"
     
-    @patch('rag.embedding.huggingface_embedding.requests')
+    @patch('embedding.strategies.huggingface.strategy.requests')
     def test_embed(self, mock_requests):
         mock_session = Mock()
         mock_response = Mock()
@@ -207,7 +207,7 @@ class TestHuggingFaceEmbeddingStrategy:
         
         assert result == [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]
     
-    @patch('rag.embedding.huggingface_embedding.requests')
+    @patch('embedding.strategies.huggingface.strategy.requests')
     def test_embed_with_api_key(self, mock_requests):
         mock_session = Mock()
         mock_session.headers = {}
@@ -230,7 +230,7 @@ class TestHuggingFaceEmbeddingStrategy:
 
 class TestMedCPTEmbeddingStrategy:
     
-    @patch('rag.embedding.medcpt_embedding.get_sentence_transformer')
+    @patch('embedding.strategies.medcpt.strategy.get_sentence_transformer')
     def test_initialization(self, mock_get_model):
         mock_query_model = Mock()
         mock_article_model = Mock()
@@ -246,7 +246,7 @@ class TestMedCPTEmbeddingStrategy:
         assert strategy.query_model == mock_query_model
         assert strategy.article_model == mock_article_model
     
-    @patch('rag.embedding.medcpt_embedding.get_sentence_transformer')
+    @patch('embedding.strategies.medcpt.strategy.get_sentence_transformer')
     def test_embed_query(self, mock_get_model):
         mock_query_model = Mock()
         mock_query_model.encode.return_value = [[0.1, 0.2, 0.3]]
@@ -263,7 +263,7 @@ class TestMedCPTEmbeddingStrategy:
         )
         assert result == [[0.1, 0.2, 0.3]]
     
-    @patch('rag.embedding.medcpt_embedding.get_sentence_transformer')
+    @patch('embedding.strategies.medcpt.strategy.get_sentence_transformer')
     def test_embed_documents(self, mock_get_model):
         mock_query_model = Mock()
         mock_article_model = Mock()
@@ -280,7 +280,7 @@ class TestMedCPTEmbeddingStrategy:
         )
         assert result == [[0.1, 0.2], [0.3, 0.4]]
     
-    @patch('rag.embedding.medcpt_embedding.get_sentence_transformer')
+    @patch('embedding.strategies.medcpt.strategy.get_sentence_transformer')
     def test_embed_query_method(self, mock_get_model):
         mock_query_model = Mock()
         mock_query_model.encode.return_value = [[0.1, 0.2, 0.3]]
@@ -293,7 +293,7 @@ class TestMedCPTEmbeddingStrategy:
         
         assert result == [[0.1, 0.2, 0.3]]
     
-    @patch('rag.embedding.medcpt_embedding.get_sentence_transformer')
+    @patch('embedding.strategies.medcpt.strategy.get_sentence_transformer')
     def test_embed_documents_method(self, mock_get_model):
         mock_query_model = Mock()
         mock_article_model = Mock()
@@ -314,7 +314,7 @@ class TestMedCPTEmbeddingStrategy:
 class TestCohereRerankerStrategy:
     
     @patch.dict('os.environ', {'COHERE_API_KEY': 'test_key'})
-    @patch('rag.reranking.cohere_reranker.cohere')
+    @patch('rag.modules.reranking.strategies.cohere.strategy.cohere')
     def test_initialization(self, mock_cohere):
         config = CohereRerankerConfig(
             model_name="rerank-v3.5",
@@ -325,14 +325,14 @@ class TestCohereRerankerStrategy:
         assert strategy.model == "rerank-v3.5"
     
     @patch.dict('os.environ', {}, clear=True)
-    @patch('rag.reranking.cohere_reranker.cohere')
+    @patch('rag.modules.reranking.strategies.cohere.strategy.cohere')
     def test_missing_api_key(self, mock_cohere):
         config = CohereRerankerConfig()
         with pytest.raises(ValueError, match="COHERE_API_KEY"):
             CohereRerankerStrategy(config)
     
     @patch.dict('os.environ', {'COHERE_API_KEY': 'test_key'})
-    @patch('rag.reranking.cohere_reranker.cohere')
+    @patch('rag.modules.reranking.strategies.cohere.strategy.cohere')
     def test_rerank(self, mock_cohere):
         mock_client = Mock()
         mock_result = Mock()
@@ -361,7 +361,7 @@ class TestCohereRerankerStrategy:
 class TestVoyageRerankerStrategy:
     
     @patch.dict('os.environ', {'VOYAGE_API_KEY': 'test_key'})
-    @patch('rag.reranking.voyage_reranker.voyageai')
+    @patch('rag.modules.reranking.strategies.voyage.strategy.voyageai')
     def test_initialization(self, mock_voyageai):
         config = VoyageRerankerConfig(
             model_name="rerank-2",
@@ -372,14 +372,14 @@ class TestVoyageRerankerStrategy:
         assert strategy.model == "rerank-2"
     
     @patch.dict('os.environ', {}, clear=True)
-    @patch('rag.reranking.voyage_reranker.voyageai')
+    @patch('rag.modules.reranking.strategies.voyage.strategy.voyageai')
     def test_missing_api_key(self, mock_voyageai):
         config = VoyageRerankerConfig()
         with pytest.raises(ValueError, match="VOYAGE_API_KEY"):
             VoyageRerankerStrategy(config)
     
     @patch.dict('os.environ', {'VOYAGE_API_KEY': 'test_key'})
-    @patch('rag.reranking.voyage_reranker.voyageai')
+    @patch('rag.modules.reranking.strategies.voyage.strategy.voyageai')
     def test_rerank(self, mock_voyageai):
         mock_client = Mock()
         mock_result = Mock()
@@ -403,7 +403,7 @@ class TestVoyageRerankerStrategy:
 class TestJinaRerankerStrategy:
     
     @patch.dict('os.environ', {'JINA_API_KEY': 'test_key'})
-    @patch('rag.reranking.jina_reranker.requests')
+    @patch('rag.modules.reranking.strategies.jina.strategy.requests')
     def test_initialization(self, mock_requests):
         config = JinaRerankerConfig(
             model_name="jina-reranker-v2-base",
@@ -414,14 +414,14 @@ class TestJinaRerankerStrategy:
         assert strategy.model == "jina-reranker-v2-base"
     
     @patch.dict('os.environ', {}, clear=True)
-    @patch('rag.reranking.jina_reranker.requests')
+    @patch('rag.modules.reranking.strategies.jina.strategy.requests')
     def test_missing_api_key(self, mock_requests):
         config = JinaRerankerConfig()
         with pytest.raises(ValueError, match="JINA_API_KEY"):
             JinaRerankerStrategy(config)
     
     @patch.dict('os.environ', {'JINA_API_KEY': 'test_key'})
-    @patch('rag.reranking.jina_reranker.requests')
+    @patch('rag.modules.reranking.strategies.jina.strategy.requests')
     def test_rerank(self, mock_requests):
         mock_session = Mock()
         mock_response = Mock()
@@ -446,7 +446,7 @@ class TestJinaRerankerStrategy:
 class TestMixedBreadRerankerStrategy:
     
     @patch.dict('os.environ', {'MIXEDBREAD_API_KEY': 'test_key'})
-    @patch('rag.reranking.mixedbread_reranker.requests')
+    @patch('rag.modules.reranking.strategies.mixedbread.strategy.requests')
     def test_initialization(self, mock_requests):
         config = MixedBreadRerankerConfig(
             model_name="mxbai-rerank-large-v1",
@@ -457,14 +457,14 @@ class TestMixedBreadRerankerStrategy:
         assert strategy.model == "mxbai-rerank-large-v1"
     
     @patch.dict('os.environ', {}, clear=True)
-    @patch('rag.reranking.mixedbread_reranker.requests')
+    @patch('rag.modules.reranking.strategies.mixedbread.strategy.requests')
     def test_missing_api_key(self, mock_requests):
         config = MixedBreadRerankerConfig()
         with pytest.raises(ValueError, match="MIXEDBREAD_API_KEY"):
             MixedBreadRerankerStrategy(config)
     
     @patch.dict('os.environ', {'MIXEDBREAD_API_KEY': 'test_key'})
-    @patch('rag.reranking.mixedbread_reranker.requests')
+    @patch('rag.modules.reranking.strategies.mixedbread.strategy.requests')
     def test_rerank(self, mock_requests):
         mock_session = Mock()
         mock_response = Mock()
