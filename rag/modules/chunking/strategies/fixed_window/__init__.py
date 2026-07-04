@@ -1,0 +1,1 @@
+"""Fixed-window chunking strategy."""

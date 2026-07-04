@@ -1,8 +1,11 @@
 import os
 
-from rag.config.config import ProviderConfig
-from rag.config.enums import ProviderType
-from providers.groq.groq_provider import GroqProvider
+from providers.config import ProviderConfig
+from providers.enums import ProviderType
+from providers.registry import provider_registry
+
+# Ensure strategies are registered before the factory uses the registry
+from providers.groq.groq_provider import GroqProvider  # noqa: F401
 
 
 class ProviderFactory:
@@ -57,17 +60,16 @@ class ProviderFactory:
             config
         )
 
+        # Use registry to create provider
+        kwargs = {
+            "api_keys": api_keys,
+            "config": config,
+        }
+        
+        # Add provider-specific parameters
         if provider_type == ProviderType.GROQ:
-            kwargs = {}
             cooldown_seconds = config.params.get("cooldown_seconds")
             if cooldown_seconds is not None:
                 kwargs["cooldown_seconds"] = cooldown_seconds
 
-            return GroqProvider(
-                api_keys=api_keys,
-                **kwargs
-            )
-
-        raise ValueError(
-            f"Unsupported provider type: {provider_type.value}"
-        )
+        return provider_registry.create(provider_type, **kwargs)

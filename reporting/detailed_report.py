@@ -21,10 +21,13 @@ from reporting.base import (
     ReportSection,
     ReportStrategy,
 )
+from reporting.registry import report_registry
+from reporting.enums import ReportType
 
 from rag.models.pipeline_run_result import PipelineRunResult
 
 
+@report_registry.register(ReportType.DETAILED_QUERY)
 class DetailedQueryReportStrategy(ReportStrategy):
     """Per-query breakdown plus aggregate TRACe statistics."""
 

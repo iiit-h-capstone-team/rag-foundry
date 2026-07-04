@@ -73,8 +73,10 @@ class JSONLWriter:
                         continue
                     try:
                         record = json.loads(line)
-                        query_index = record.get('metadata', {}).get('query_index')
-                        if query_index is not None:
+                        metadata = record.get('metadata', {})
+                        query_index = metadata.get('query_index')
+                        status = metadata.get('status')
+                        if query_index is not None and status == 'success':
                             self._completed_indices.add(query_index)
                     except json.JSONDecodeError:
                         continue
@@ -216,6 +218,42 @@ class JSONLWriter:
             timeout: Maximum time to wait in seconds
         """
         self._queue.join()
+    
+    def clear_index(self, query_index: int):
+        """Remove a query index from completed set so it can be re-processed.
+        
+        Args:
+            query_index: The index to clear
+        """
+        with self._lock:
+            self._completed_indices.discard(query_index)
+    
+    def deduplicate(self):
+        """Rewrite the JSONL file keeping only the last record per query_index."""
+        if not self.output_path.exists():
+            return
+        
+        last_record: dict[int, str] = {}
+        order: list[int] = []
+        
+        with open(self.output_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    record = json.loads(line)
+                    qi = record.get('metadata', {}).get('query_index')
+                    if qi is not None:
+                        if qi not in last_record:
+                            order.append(qi)
+                        last_record[qi] = line
+                except json.JSONDecodeError:
+                    continue
+        
+        with open(self.output_path, 'w', encoding='utf-8') as f:
+            for qi in sorted(order):
+                f.write(last_record[qi] + '\n')
     
     def __enter__(self):
         """Context manager entry."""

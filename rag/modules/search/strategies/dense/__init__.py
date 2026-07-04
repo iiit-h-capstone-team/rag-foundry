@@ -1,0 +1,1 @@
+"""Dense search strategy."""

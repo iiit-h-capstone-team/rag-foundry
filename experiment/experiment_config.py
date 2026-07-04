@@ -17,6 +17,11 @@ class ExperimentConfig:
     # Parallel execution configuration
     parallel: bool = False
     max_workers: int = 4
+    query_workers: int = 4  # intra-config query parallelism
+    
+    # Retry configuration
+    max_retry_rounds: int = 3
+    retry_delay_seconds: int = 60
     
     # Temporary directory for JSONL files
     temp_dir: Path = Path("./temp")
@@ -24,6 +29,9 @@ class ExperimentConfig:
     # Data loading configuration
     data_loader: dict | None = None  # {type: "huggingface", config: {...}}
     data_parser: str | None = None  # Parser type (e.g., "title_passage")
+    
+    # Evaluation configuration (shared across all configs)
+    evaluation: dict | None = None  # {type: "trace", provider: "groq", config: {...}}
     
     # Report configuration
     report_strategy: str = "detailed_query"  # Report strategy to use
@@ -47,8 +55,12 @@ class ExperimentConfig:
             end_index=data.get("end_index"),
             parallel=data.get("parallel", False),
             max_workers=data.get("max_workers", 4),
+            query_workers=data.get("query_workers", 4),
+            max_retry_rounds=data.get("max_retry_rounds", 3),
+            retry_delay_seconds=data.get("retry_delay_seconds", 60),
             temp_dir=Path(data.get("temp_dir", "./temp")),
             data_loader=data.get("data_loader"),
             data_parser=data.get("data_parser"),
+            evaluation=data.get("evaluation"),
             report_strategy=data.get("report_strategy", "detailed_query"),
         )

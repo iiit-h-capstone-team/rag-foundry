@@ -10,33 +10,30 @@ and providers declare their own credential environment variable via
 from rag.config.config import (
     RAGConfig,
     ProviderConfig,
+    VectorStoreConfig,
+    RetrievalConfig,
+)
+from vectorstore import FaissVectorStoreConfig
+from rag.modules.search import SearchPipelineConfig, SearchStrategyConfig, DenseSearchConfig, SparseSearchConfig
+from rag.modules.fusion import FusionConfig, WeightedSumFusionConfig
+from rag.modules.reranking import RerankerConfig, CrossEncoderRerankerConfig
+from rag.modules.generation import GenerationConfig, DefaultGenerationConfig
+from evaluation import EvaluationConfig, TRACeEvaluationConfig
+from rag.modules.chunking import (
     ChunkingConfig,
     SentenceChunkingConfig,
     FixedWindowChunkingConfig,
     TokenChunkingConfig,
+    ChunkingType,
+)
+from embedding import (
     EmbeddingConfig,
     SentenceTransformerEmbeddingConfig,
     OpenAIEmbeddingConfig,
-    VectorStoreConfig,
-    FaissVectorStoreConfig,
-    RetrievalConfig,
-    SearchPipelineConfig,
-    SearchStrategyConfig,
-    DenseSearchConfig,
-    SparseSearchConfig,
-    FusionConfig,
-    WeightedSumFusionConfig,
-    RerankerConfig,
-    CrossEncoderRerankerConfig,
-    GenerationConfig,
-    DefaultGenerationConfig,
-    EvaluationConfig,
-    TRACeEvaluationConfig,
+    EmbeddingType,
 )
 from rag.config.enums import (
     ProviderType,
-    ChunkingType,
-    EmbeddingType,
     VectorStoreType,
     SearchType,
     FusionType,
