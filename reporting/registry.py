@@ -10,3 +10,6 @@ class ReportRegistry(BaseRegistry[ReportStrategy]):
 
 
 report_registry = ReportRegistry()
+
+from reporting.detailed_report import DetailedQueryReportStrategy
+

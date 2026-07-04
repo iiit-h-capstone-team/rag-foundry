@@ -114,7 +114,7 @@ class DetailedQueryReportStrategy(ReportStrategy):
             }
 
             pred_scores = record.metadata.get("predicted_scores", {})
-            gt_scores = record.metadata.get("ground_truth_scores", {})
+            gt_scores = record.metadata.get("ground_truth", {})
 
             for metric in self.trace_metrics:
                 pred = self._to_float(pred_scores.get(metric))
@@ -155,7 +155,7 @@ class DetailedQueryReportStrategy(ReportStrategy):
 
             gts = pd.Series([
                 self._to_float(
-                    r.metadata.get("ground_truth_scores", {}).get(metric)
+                    r.metadata.get("ground_truth", {}).get(metric)
                 )
                 for r in run.records
             ])

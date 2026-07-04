@@ -180,6 +180,12 @@ class ExperimentRunner:
         
         # Build ground truth map for all indices
         def _ground_truth(sample):
+            has_scores = any(
+                key in sample
+                for key in ["relevance_score", "utilization_score", "completeness_score", "adherence_score"]
+            )
+            if not has_scores:
+                return None
             return {
                 "relevance_score": sample.get("relevance_score", 0.0),
                 "utilization_score": sample.get("utilization_score", 0.0),
