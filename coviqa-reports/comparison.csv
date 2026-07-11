@@ -1,0 +1,6 @@
+config_name,metric,mean_score,mean_ground_truth,std_score,std_ground_truth,mean_abs_error
+covidqa_high_recall_hybrid_v2,relevance_score,0.2687,0.2887,0.26,0.1684,0.2288
+covidqa_hyde_hybrid,relevance_score,0.2273,0.2887,0.2582,0.1684,0.2374
+covidqa_multiquery_hybrid,relevance_score,0.3594,0.2887,0.3022,0.1684,0.2523
+covidqa_multiquery_hybrid_v2,relevance_score,0.2874,0.2887,0.2741,0.1684,0.2477
+covidqa_biomedical_multiquery_v1,relevance_score,0.1197,0.2887,0.2227,0.1684,0.2639
