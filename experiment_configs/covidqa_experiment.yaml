@@ -8,7 +8,7 @@ temp_dir: temp
 
 # Query range configuration
 start_index: 0
-end_index: 246
+end_index: 20
 
 # Parallel execution configuration
 parallel: false
@@ -34,7 +34,20 @@ data_loader:
     limit: 246
 
 # Data parser configuration
-data_parser: title_passage
+# include_labels: false → content is "<title>\n\n<passage>" (clean for embeddings)
+# include_labels: true  → content is "Title: <title>\nPassage: <passage>"
+# NOTE: v6_qwen32b and v7_contextual were run with include_labels: true (old default)
+data_parser:
+  type: title_passage_combined
+  config:
+    include_labels: false
+
+# Data processing pipeline
+data_processing:
+  steps:
+    - type: deduplication
+      config:
+        strategy: content_hash
 
 # Report configuration
 report_strategy: detailed_query

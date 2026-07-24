@@ -46,9 +46,18 @@ class ExperimentRunner:
         ):
             cfg = ConfigLoader.load(path)
             cfg.mode = Mode.TEST
-            cfg.cache.cache_dir = str(
-                self.config.cache_dir
-            )
+            
+            # Apply cache config from experiment to all RAG configs
+            # Experiment cache is centralized and applies to all configs in the experiment
+            if self.config.cache:
+                if self.config.cache.get("enabled") is not None:
+                    cfg.cache.enabled = self.config.cache["enabled"]
+                if self.config.cache.get("cache_dir"):
+                    cfg.cache.cache_dir = self.config.cache["cache_dir"]
+            elif self.config.cache_dir:
+                # Fallback: use legacy cache_dir from experiment config
+                cfg.cache.cache_dir = str(self.config.cache_dir)
+            
             configs.append(cfg)
         return configs
 
@@ -105,9 +114,15 @@ class ExperimentRunner:
         
         # Parse data if parser is specified
         if self.config.data_parser:
-            parser_type_str = self.config.data_parser
+            # Support both plain string and dict {type: ..., config: {...}}
+            if isinstance(self.config.data_parser, dict):
+                parser_type_str = self.config.data_parser["type"]
+                parser_config = self.config.data_parser.get("config", {})
+            else:
+                parser_type_str = self.config.data_parser
+                parser_config = {}
             try:
-                parser = parser_registry.create(parser_type_str)
+                parser = parser_registry.create(parser_type_str, config=parser_config) if parser_config else parser_registry.create(parser_type_str)
                 processor = DataProcessor(parser_strategy=parser)
                 documents = processor.process_dataset(raw_data)
             except (ValueError, KeyError):
@@ -118,6 +133,12 @@ class ExperimentRunner:
         else:
             # If no parser specified, return empty documents list
             documents = []
+        
+        # Run processing pipeline if configured
+        if documents and self.config.data_processing:
+            from data_sources.processors.pipeline import ProcessingPipeline
+            pipeline = ProcessingPipeline.from_config(self.config.data_processing)
+            documents = pipeline.run(documents)
         
         return documents, raw_data
 

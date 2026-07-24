@@ -23,15 +23,21 @@ class ExperimentConfig:
     max_retry_rounds: int = 3
     retry_delay_seconds: int = 60
     
-    # Temporary directory for JSONL files
+    # Temporary directory for JSONL files (partial runs, query results)
     temp_dir: Path = Path("./temp")
+    
+    # Cache configuration (applied to all RAG configs unless overridden)
+    cache: dict | None = None  # {enabled: bool, cache_dir: str}
     
     # Data loading configuration
     data_loader: dict | None = None  # {type: "huggingface", config: {...}}
-    data_parser: str | None = None  # Parser type (e.g., "title_passage")
+    data_parser: dict | str | None = None  # Parser: str or {type: ..., config: {...}}
     
     # Evaluation configuration (shared across all configs)
     evaluation: dict | None = None  # {type: "trace", provider: "groq", config: {...}}
+    
+    # Data processing pipeline configuration
+    data_processing: dict | None = None  # {steps: [{type: "deduplication", config: {...}}]}
     
     # Report configuration
     report_strategy: str = "detailed_query"  # Report strategy to use
@@ -59,8 +65,10 @@ class ExperimentConfig:
             max_retry_rounds=data.get("max_retry_rounds", 3),
             retry_delay_seconds=data.get("retry_delay_seconds", 60),
             temp_dir=Path(data.get("temp_dir", "./temp")),
+            cache=data.get("cache"),
             data_loader=data.get("data_loader"),
-            data_parser=data.get("data_parser"),
+            data_parser=data.get("data_parser"),  # str or dict
+            data_processing=data.get("data_processing"),
             evaluation=data.get("evaluation"),
             report_strategy=data.get("report_strategy", "detailed_query"),
         )

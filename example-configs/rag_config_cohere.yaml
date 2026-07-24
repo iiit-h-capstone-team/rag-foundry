@@ -13,10 +13,10 @@ providers:
       cooldown_seconds: 60
 
 chunking:
-  type: token
+  type: fixed_word
   config:
-    max_tokens: 100
-    overlap_tokens: 10
+    max_words: 100
+    overlap_words: 10
 
 embedding:
   type: cohere

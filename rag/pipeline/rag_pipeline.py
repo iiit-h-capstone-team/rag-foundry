@@ -133,6 +133,9 @@ class RAGPipeline:
         )
 
         # Search pipeline
+        # BM25 store is built lazily during build_index; pass a
+        # callable so sparse strategies can resolve it at search time.
+        self.bm25_store = None
         search_strategies = []
         for search_config in self.config.retrieval.search.searches:
             strategy = search_registry.create(
@@ -140,7 +143,7 @@ class RAGPipeline:
                 config=search_config.config,
                 embedder=self.embedder,
                 vector_store=self.vector_store,
-                bm25_store=None,
+                bm25_store=lambda: self.bm25_store,
             )
             search_strategies.append(strategy)
         
@@ -245,6 +248,16 @@ class RAGPipeline:
         logger.debug("Index cache key=%s", index_key)
 
         logger.info("Vector store ready with %d chunks", len(self.vector_store.chunks))
+
+        # 4. BM25 index (for sparse search)
+        has_sparse = any(
+            sc.type in ("sparse", "bm25")
+            for sc in self.config.retrieval.search.searches
+        )
+        if has_sparse:
+            from rag.modules.search.bm25_store import BM25Store
+            self.bm25_store = BM25Store(chunks)
+            logger.info("BM25 store ready with %d chunks", len(chunks))
 
     def query(self, query: str, query_index: int = 0, ground_truth: Optional[Dict] = None) -> QueryResult:
         """Run complete RAG query and return QueryResult with latencies."""

@@ -23,8 +23,11 @@ class SentenceTransformerEmbeddingStrategy(EmbeddingStrategy):
 
         self.model = get_sentence_transformer(model_name)
 
-    def embed(self, texts):
+    def embed(self, texts, is_query=False):
         if isinstance(texts, str):
             texts = [texts]
+
+        if is_query and self.config.query_instruction:
+            texts = [f"{self.config.query_instruction}{t}" for t in texts]
 
         return self.model.encode(texts, normalize_embeddings=True)

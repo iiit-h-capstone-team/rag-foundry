@@ -23,6 +23,7 @@ from rag.modules.chunking import (
     ChunkingConfig,
     SentenceChunkingConfig,
     FixedWindowChunkingConfig,
+    FixedWordChunkingConfig,
     TokenChunkingConfig,
     ChunkingType,
 )
@@ -176,10 +177,10 @@ config_openai_production = RAGConfig(
         ),
     },
     chunking=ChunkingConfig(
-        type=ChunkingType.TOKEN,
-        config=TokenChunkingConfig(
-            max_tokens=200,
-            overlap_tokens=20
+        type=ChunkingType.FIXED_WORD,
+        config=FixedWordChunkingConfig(
+            max_words=200,
+            overlap_words=20
         )
     ),
     embedding=EmbeddingConfig(

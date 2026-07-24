@@ -1,0 +1,91 @@
+mode: dev
+name: pubmedqa_title_aware_v12_improved_prompt
+
+cache:
+  enabled: true
+  cache_dir: ./cache
+
+log_level: INFO
+
+providers:
+  groq:
+    type: groq
+    api_key_env: GROQ_API_KEY
+    params:
+      cooldown_seconds: 60
+
+chunking:
+  type: sentence
+  config:
+    max_words: 200
+    overlap_sentences: 1
+
+embedding:
+  type: sentence_transformer
+  config:
+    model_name: BAAI/bge-large-en-v1.5
+    dimension: 1024
+
+vector_store:
+  type: faiss
+  config:
+    dimension: 1024
+
+retrieval:
+  query_transform:
+    type: multi_query
+    provider: groq
+    config:
+      num_queries: 3
+      model: llama-3.3-70b-versatile
+      temperature: 0.3
+
+  search:
+    searches:
+      - type: dense
+        config:
+          top_k: 50
+          context_window: 1
+      - type: sparse
+        config:
+          top_k: 50
+
+  fusion:
+    type: rrf
+    config:
+      k: 60
+
+  rerank:
+    type: cross_encoder
+    config:
+      model_name: BAAI/bge-reranker-v2-m3
+      top_k: 7
+
+generation:
+  strategy: default
+  provider: groq
+  config:
+    model: llama-3.3-70b-versatile
+    temperature: 0.0
+    max_tokens: 512
+
+    system_prompt: |
+      You are a biomedical question answering assistant.
+      Your task is to answer questions ONLY using information from the retrieved passages.
+      
+      CRITICAL RULES:
+      1. Answer ONLY from the passages provided. Do not use any external knowledge.
+      2. If the passages contain the answer, provide it directly and completely.
+      3. If the passages do NOT contain enough information to answer, respond with: "The passages do not contain sufficient information to answer this question."
+      4. Do NOT hedge, qualify, or add phrases like "based on general knowledge" or "it is well-established."
+      5. Do NOT say "The provided context does not contain..." - use the exact phrase above instead.
+      6. Include all relevant details, statistics, and findings from the passages.
+      7. Be concise but thorough - avoid unnecessary verbosity.
+
+    user_prompt: |
+      Passages:
+      {context}
+
+      Question: {query}
+
+      Answer (from passages only, include all relevant details):

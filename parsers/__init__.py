@@ -5,6 +5,8 @@ from parsers.registry import parser_registry, ParserRegistry
 from parsers.enums import ParserType
 
 from parsers.title_passage_parser import TitlePassageParser
+from parsers.title_passage_combined_parser import TitlePassageCombinedParser
+from parsers.noop_parser import NoopParser
 
 
 __all__ = [
@@ -13,4 +15,6 @@ __all__ = [
     "parser_registry",
     "ParserType",
     "TitlePassageParser",
+    "TitlePassageCombinedParser",
+    "NoopParser",
 ]

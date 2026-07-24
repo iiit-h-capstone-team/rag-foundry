@@ -1,0 +1,11 @@
+{
+  "dataset": "galileo-ai/ragbench",
+  "config_name": "pubmedqa_title_aware_v17_hybrid_transform",
+  "start_index": 0,
+  "end_index": 20,
+  "total_queries": 20,
+  "created_at": "2026-07-24T18:22:16.854532",
+  "status": "completed",
+  "completed_at": "2026-07-24T18:22:47.008256",
+  "error_message": null
+}

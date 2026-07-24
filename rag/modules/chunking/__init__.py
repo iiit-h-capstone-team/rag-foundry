@@ -11,6 +11,9 @@ from rag.modules.chunking.strategies.sentence.strategy import SentenceChunkingSt
 from rag.modules.chunking.strategies.fixed_window.config import FixedWindowChunkingConfig
 from rag.modules.chunking.strategies.fixed_window.strategy import FixedWindowChunkingStrategy
 
+from rag.modules.chunking.strategies.fixed_word.config import FixedWordChunkingConfig
+from rag.modules.chunking.strategies.fixed_word.strategy import FixedWordChunkingStrategy
+
 from rag.modules.chunking.strategies.token.config import TokenChunkingConfig
 from rag.modules.chunking.strategies.token.strategy import TokenChunkingStrategy
 
@@ -42,6 +45,8 @@ __all__ = [
     "SentenceChunkingStrategy",
     "FixedWindowChunkingConfig",
     "FixedWindowChunkingStrategy",
+    "FixedWordChunkingConfig",
+    "FixedWordChunkingStrategy",
     "TokenChunkingConfig",
     "TokenChunkingStrategy",
     "SemanticChunkingConfig",

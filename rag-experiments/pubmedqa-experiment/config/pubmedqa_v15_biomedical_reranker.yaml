@@ -1,0 +1,92 @@
+mode: dev
+name: pubmedqa_title_aware_v15_biomedical_reranker
+
+cache:
+  enabled: true
+  cache_dir: ./cache
+
+log_level: INFO
+
+providers:
+  groq:
+    type: groq
+    api_key_env: GROQ_API_KEY
+    params:
+      cooldown_seconds: 60
+
+chunking:
+  type: sentence
+  config:
+    max_words: 200
+    overlap_sentences: 1
+
+embedding:
+  type: sentence_transformer
+  config:
+    model_name: microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract-fulltext
+    dimension: 768
+
+vector_store:
+  type: faiss
+  config:
+    dimension: 768
+
+retrieval:
+  query_transform:
+    type: step_back
+    provider: groq
+    config:
+      model: llama-3.3-70b-versatile
+      temperature: 0.3
+
+  search:
+    searches:
+      - type: dense
+        config:
+          top_k: 75
+          context_window: 2
+          min_similarity: 0.5
+      - type: sparse
+        config:
+          top_k: 75
+
+  fusion:
+    type: weighted_sum
+    config:
+      dense_weight: 0.7
+      sparse_weight: 0.3
+
+  rerank:
+    type: cross_encoder
+    config:
+      model_name: BAAI/bge-reranker-large
+      top_k: 15
+
+generation:
+  strategy: default
+  provider: groq
+  config:
+    model: llama-3.3-70b-versatile
+    temperature: 0.0
+    max_tokens: 600
+
+    system_prompt: |
+      You are a biomedical question answering assistant.
+      Your task is to answer questions using ONLY information from the retrieved passages.
+      
+      CRITICAL RULES:
+      1. Answer ONLY from the passages provided. Do not use external knowledge.
+      2. Include all relevant details, findings, and statistics from the passages.
+      3. Be concise but thorough — aim for 100-150 words unless more detail is essential.
+      4. Do NOT add phrases like "based on general knowledge" or "it is well-established."
+      5. Do NOT hedge or qualify your answer unnecessarily.
+      6. If the passages do not contain enough information, respond with: "The passages do not provide sufficient information to answer this question."
+      7. Do NOT say "The passages do not contain..." or similar variations — use the exact phrase above.
+
+    user_prompt: |
+      Passages:
+      {context}
+
+      Question: {query}
+
+      Answer (from passages only, include all relevant details and findings):
