@@ -1,0 +1,92 @@
+mode: dev
+name: covidqa_title_aware_v1
+
+cache:
+  enabled: true
+  cache_dir: ./cache
+
+log_level: INFO
+
+providers:
+  groq:
+    type: groq
+    api_key_env: GROQ_API_KEY
+    params:
+      cooldown_seconds: 60
+
+# Larger chunks to preserve passage context. RAGBench passages are
+# typically 50-150 words, so most will remain intact as single chunks.
+chunking:
+  type: sentence
+  config:
+    max_words: 200
+    overlap_sentences: 1
+
+embedding:
+  type: sentence_transformer
+  config:
+    model_name: BAAI/bge-large-en-v1.5
+    dimension: 1024
+
+vector_store:
+  type: faiss
+  config:
+    dimension: 1024
+
+retrieval:
+  search:
+    searches:
+      - type: dense
+        config:
+          top_k: 50
+
+      - type: sparse
+        config:
+          top_k: 50
+
+  fusion:
+    type: rrf
+    config:
+      k: 20
+
+  # Reduced from 12 → 5 to cut noise and improve utilization
+  rerank:
+    type: cross_encoder
+    config:
+      model_name: BAAI/bge-reranker-v2-m3
+      top_k: 5
+
+generation:
+  strategy: default
+  provider: groq
+  config:
+    model: llama-3.1-8b-instant
+    temperature: 0.1
+    max_tokens: 1024
+
+    system_prompt: |
+      You are an expert biomedical question answering assistant.
+
+      Carefully analyze the retrieved passages before answering.
+      Each passage may include its paper title for context.
+
+      Use only information contained in the retrieved context.
+      If multiple passages contribute to the answer, synthesize them.
+      If the context does not contain sufficient evidence, explicitly say so.
+      Never fabricate information.
+
+    user_prompt: |
+      Retrieved Context:
+      --------------------
+      {context}
+      --------------------
+
+      Question:
+      {query}
+
+      Requirements:
+      - Answer only from the retrieved context.
+      - Be concise and precise.
+      - Do not introduce unsupported information.
+
+      Answer:

@@ -8,3 +8,4 @@ from rag.modules.search.config import BaseSearchConfig
 class DenseSearchConfig(BaseSearchConfig):
     """Configuration for dense vector search."""
     top_k: int = 5
+    context_window: int = 0

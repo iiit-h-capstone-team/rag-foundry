@@ -27,14 +27,22 @@ class ComparisonReport:
     def to_dataframe(self):
         rows = []
         for report in self.reports:
-            # Get summary from the first section's summary DataFrame
-            # For single-section reports (typical case), this works correctly
-            if report.sections:
-                summary_row = {
-                    'config_name': report.config_name,
-                    **report.sections[0].summary.iloc[0].to_dict()
-                }
-                rows.append(summary_row)
+            if not report.sections:
+                continue
+            summary_df = report.sections[0].summary
+            row = {'config_name': report.config_name}
+            for _, m in summary_df.iterrows():
+                metric = m.get('metric', '')
+                # Handle both column naming conventions
+                mean_val = m.get('mean_score', m.get('mean', None))
+                mae_val = m.get('mean_abs_error', None)
+                if mae_val is None and 'deviation' in m:
+                    mae_val = abs(m['deviation'])
+                if mean_val is not None:
+                    row[f"{metric}__mean"] = round(mean_val, 4)
+                if mae_val is not None:
+                    row[f"{metric}__mae"] = round(mae_val, 4)
+            rows.append(row)
         return pd.DataFrame(rows)
 
     def save_csv(self, path):

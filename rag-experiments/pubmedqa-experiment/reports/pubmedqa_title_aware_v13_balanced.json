@@ -1,0 +1,1902 @@
+{
+  "title": "RAG Multi-Config Evaluation Report",
+  "strategy_name": "detailed_query",
+  "sections": [
+    {
+      "config_name": "pubmedqa_title_aware_v13_balanced",
+      "config_summary": {
+        "name": "pubmedqa_title_aware_v13_balanced",
+        "mode": "test",
+        "providers": {
+          "groq": {
+            "type": "groq",
+            "api_key_env": "GROQ_API_KEY",
+            "params": {
+              "cooldown_seconds": 60
+            }
+          }
+        },
+        "chunking": {
+          "type": "sentence",
+          "config": {
+            "max_words": 200,
+            "overlap_sentences": 1
+          }
+        },
+        "embedding": {
+          "type": "sentence_transformer",
+          "config": {
+            "model_name": "BAAI/bge-large-en-v1.5",
+            "dimension": 1024
+          }
+        },
+        "vector_store": {
+          "type": "faiss",
+          "config": {
+            "dimension": 1024
+          }
+        },
+        "retrieval": {
+          "search": {
+            "searches": [
+              {
+                "type": "dense",
+                "config": {
+                  "top_k": 75,
+                  "context_window": 2
+                }
+              },
+              {
+                "type": "sparse",
+                "config": {
+                  "top_k": 75
+                }
+              }
+            ]
+          },
+          "query_transform": {
+            "type": "multi_query",
+            "provider": "groq",
+            "config": {
+              "num_queries": 5,
+              "model": "llama-3.3-70b-versatile",
+              "temperature": 0.5
+            }
+          },
+          "fusion": {
+            "type": "rrf",
+            "config": {
+              "k": 60
+            }
+          },
+          "rerank": {
+            "type": "cross_encoder",
+            "config": {
+              "model_name": "BAAI/bge-reranker-v2-m3",
+              "top_k": 10
+            }
+          }
+        },
+        "generation": {
+          "strategy": "default",
+          "provider": "groq",
+          "config": {
+            "model": "llama-3.3-70b-versatile",
+            "temperature": 0.0,
+            "max_tokens": 600,
+            "system_prompt": "You are a biomedical question answering assistant.\nYour task is to answer questions using information from the retrieved passages.\n\nINSTRUCTIONS:\n1. Answer ONLY from the passages provided. Do not use external knowledge.\n2. Include all relevant details, findings, and statistics from the passages.\n3. Be concise but thorough — aim for 100-150 words unless more detail is essential.\n4. Do NOT add phrases like \"based on general knowledge\" or \"it is well-established.\"\n5. Do NOT hedge or qualify your answer unnecessarily.\n6. If the passages do not contain enough information, say: \"The passages do not provide sufficient information to answer this question.\"\n",
+            "user_prompt": "Passages:\n{context}\n\nQuestion: {query}\n\nAnswer (from passages only, include all relevant details and findings):\n"
+          }
+        },
+        "evaluation": null,
+        "cache": {
+          "enabled": true,
+          "cache_dir": "./cache"
+        },
+        "start_index": null,
+        "end_index": null,
+        "logging_config": {
+          "enabled": true,
+          "level": "INFO",
+          "show_progress": true
+        }
+      },
+      "per_query": [
+        {
+          "query": "Do Surface Porosity and Pore Size Influence Mechanical Properties and Cellular Response to PEEK?",
+          "retrieved_documents": [
+            {
+              "text": "",
+              "title": "",
+              "content": "Despite its widespread use in orthopaedic implants such as soft tissue fasteners and spinal intervertebral implants, polyetheretherketone (PEEK) often suffers from poor osseointegration. Introducing porosity can overcome this limitation by encouraging bone ingrowth; however, the corresponding decrease in implant strength can potentially reduce the implant's ability to bear physiologic loads. We have previously shown, using a single pore size, that limiting porosity to the surface of PEEK implants preserves strength while supporting in vivo osseointegration. However, additional work is needed to investigate the effect of pore size on both the mechanical properties and cellular response to PEEK.QUESTIONS/",
+              "metadata": {
+                "doc_id": "sample_0_doc_2",
+                "sample_index": 0,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 97,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "(1) Can surface porous PEEK (PEEK-SP) microstructure be reliably controlled? (2) What is the effect of pore size on the mechanical properties of PEEK-SP? (3) Do surface porosity and pore size influence the cellular response to PEEK?",
+              "metadata": {
+                "doc_id": "sample_0_doc_0",
+                "sample_index": 0,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 37,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Micro-CT analysis showed that PEEK-SP layers possessed pores that were 284 ± 35 µm, 341 ± 49 µm, and 416 ± 54 µm for each pore size group. Porosity and pore layer depth ranged from 61% to 69% and 303 to 391 µm, respectively. Mechanical testing revealed tensile strengths > 67 MPa and interfacial shear strengths > 20 MPa for all three pore size groups. All PEEK-SP groups exhibited > 50% decrease in ductility compared with PEEK-IM and demonstrated fatigue strength > 38 MPa at one million cycles. All PEEK-SP groups also supported greater proliferation and cell-mediated mineralization compared with smooth PEEK and Ti6Al4V.",
+              "metadata": {
+                "doc_id": "sample_0_doc_1",
+                "sample_index": 0,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 104,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "PEEK-SP was created by extruding PEEK through NaCl crystals of three controlled ranges: 200 to 312, 312 to 425, and 425 to 508 µm. Micro-CT was used to characterize the microstructure of PEEK-SP. Tensile, fatigue, and interfacial shear tests were performed to compare the mechanical properties of PEEK-SP with injection-molded PEEK (PEEK-IM). The cellular response to PEEK-SP, assessed by proliferation, alkaline phosphatase activity, vascular endothelial growth factor production, and calcium content of osteoblast, mesenchymal stem cell, and preosteoblast (MC3T3-E1) cultures, was compared with that of machined smooth PEEK and Ti6Al4V.",
+              "metadata": {
+                "doc_id": "sample_0_doc_3",
+                "sample_index": 0,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 90,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "We aimed (1) to compare the adherence of Staphylococcus epidermidis, Staphylococcus aureus, Escherichia coli, and Candida albicans with virgin (untreated) UHMWPE (PE) and crosslinked UHMWPE (XLPE); (2) to correlate the results with the biomaterial surface properties; and (3) to determine whether the decreased adhesion on vitamin E-stabilized UHMWPE (VE-PE) previously recorded for bacteria can also be confirmed for C albicans.",
+              "metadata": {
+                "doc_id": "sample_781_doc_3",
+                "sample_index": 781,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 60,
+                "title": ""
+              }
+            }
+          ],
+          "answer": "According to the passages, surface porosity and pore size do influence the mechanical properties and cellular response to PEEK. Mechanical testing revealed that PEEK-SP groups with different pore sizes (284 ± 35 µm, 341 ± 49 µm, and 416 ± 54 µm) had tensile strengths > 67 MPa and interfacial shear strengths > 20 MPa. However, all PEEK-SP groups exhibited a > 50% decrease in ductility compared to PEEK-IM. Fatigue strength was > 38 MPa at one million cycles for all groups. Additionally, surface porosity and pore size influenced the cellular response, with all PEEK-SP groups supporting greater proliferation and cell-mediated mineralization compared to smooth PEEK and Ti6Al4V. The porosity of PEEK-SP layers ranged from 61% to 69%, and pore layer depth ranged from 303 to 391 µm.",
+          "relevance_score__pred": 0.8235,
+          "relevance_score__gt": 0.6111,
+          "relevance_score__deviation": 0.2124,
+          "utilization_score__pred": 0.2941,
+          "utilization_score__gt": 0.5,
+          "utilization_score__deviation": -0.2059,
+          "completeness_score__pred": 0.3571,
+          "completeness_score__gt": 0.7273,
+          "completeness_score__deviation": -0.3702,
+          "adherence_score__pred": 1.0,
+          "adherence_score__gt": 1.0,
+          "adherence_score__deviation": 0.0
+        },
+        {
+          "query": "Does prosthetic covering of nitinol stents alter healing characteristics or hemodynamics?",
+          "retrieved_documents": [
+            {
+              "text": "",
+              "title": "",
+              "content": "To evaluate placement of polyester (Dacron) coverings on nitinol stents implanted in the canine aorta to determine the effect on cross-sectional lumen area, development of intimal hyperplasia, device endothelialization, and flow hemodynamics.",
+              "metadata": {
+                "doc_id": "sample_1_doc_0",
+                "sample_index": 1,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 32,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "The in vivo hemodynamic performance of a bioprosthesis implanted in an aortic position is affected by the characteristics of the prosthesis and the sizing strategy adopted. Recently, it has been hypothesized that the type of suture used to implant the prosthesis might influence hemodynamics.",
+              "metadata": {
+                "doc_id": "sample_1_doc_2",
+                "sample_index": 1,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 44,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "To analyze surface alterations and fractures observed in the nitinol stent wires of explanted endovascular grafts used for treatment of abdominal aortic aneurysm.",
+              "metadata": {
+                "doc_id": "sample_1_doc_3",
+                "sample_index": 1,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 23,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "We tested the effects of monopolar and bipolar fixed-neck prosthetic radial head implants on improvement in elbow coronal and axial plane laxity in a terrible triad biomechanical model that accounted for lateral collateral ligament integrity and the presence of a transverse coronoid fracture.",
+              "metadata": {
+                "doc_id": "sample_299_doc_4",
+                "sample_index": 299,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 43,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "To determine the application and clinical effectiveness of ePTFE/FEP-covered metallic stents for palliation of malignant biliary disease, and to evaluate the efficiency of stent coverage in preventing tumor ingrowth.",
+              "metadata": {
+                "doc_id": "sample_494_doc_3",
+                "sample_index": 494,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 29,
+                "title": ""
+              }
+            }
+          ],
+          "answer": "The passages suggest that prosthetic covering of nitinol stents may alter healing characteristics or hemodynamics. Document 1 evaluates the placement of polyester (Dacron) coverings on nitinol stents to determine the effect on cross-sectional lumen area, intimal hyperplasia, device endothelialization, and flow hemodynamics. Document 5 also investigates the application of ePTFE/FEP-covered metallic stents, which may imply a similar concept. However, the passages do not provide explicit findings or results on how prosthetic covering alters healing characteristics or hemodynamics. Document 2 mentions that prosthesis characteristics and sizing strategy affect hemodynamics, but it does not specifically address nitinol stents or prosthetic coverings.",
+          "relevance_score__pred": 0.5,
+          "relevance_score__gt": 0.5,
+          "relevance_score__deviation": 0.0,
+          "utilization_score__pred": 0.3333,
+          "utilization_score__gt": 0.4,
+          "utilization_score__deviation": -0.0667,
+          "completeness_score__pred": 0.6667,
+          "completeness_score__gt": 0.8,
+          "completeness_score__deviation": -0.1333,
+          "adherence_score__pred": 0.0,
+          "adherence_score__gt": 0.0,
+          "adherence_score__deviation": 0.0
+        },
+        {
+          "query": "Is diabetes mellitus a negative prognostic factor for the treatment of advanced non-small-cell lung cancer?",
+          "retrieved_documents": [
+            {
+              "text": "",
+              "title": "",
+              "content": "It has been demonstrated that there are a lot of different prognostic factors which are worthy of consideration whereas diabetes mellitus (DM) has not been clearly or consistently identified as a prognostic value in advanced non-small cell lung cancer (NSCLC). The aim of this study was to investigate the prognostic significance of the characteristics of patients in advanced NSCLC. Specifically, we investigated the impact of DM for progression-free survival (PFS) and overall survival (OS) in patients receiving first-line platinum-based doublets chemotherapy.",
+              "metadata": {
+                "doc_id": "sample_2_doc_0",
+                "sample_index": 2,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 81,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Previous studies have pointed to many different prognostic factors for small cell lung cancer (SCLC) but diabetes mellitus (DM) has not been clearly or consistently identified as of prognostic value. The aim of this study was to investigate the prognostic significance of the characteristics of patients and clinical laboratory tests in SCLC. Specifically, we investigated that the impact of DM for survival in the patients receiving first-line etoposide plus cisplatin (EP) chemotherapy.",
+              "metadata": {
+                "doc_id": "sample_2_doc_1",
+                "sample_index": 2,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 72,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Previous studies have suggested that chronic obstructive pulmonary disease (COPD) is an independent risk factor for lung cancer. There are some evidence that people with diabetes are at a risk of developing many forms of cancer, but inconclusive with regard to lung cancer. The aim of this study was to evaluate whether COPD with or without type 2 diabetes mellitus (T2DM) influences the risk of developing lung cancer.",
+              "metadata": {
+                "doc_id": "sample_2_doc_3",
+                "sample_index": 2,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 68,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "The aim of this study was to determine whether pre-existing diabetes mellitus increases the risk of rejection, infection and/or death in cystic fibrosis patients undergoing bilateral sequential single-lung transplantation.",
+              "metadata": {
+                "doc_id": "sample_554_doc_4",
+                "sample_index": 554,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 29,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "This study investigated possible molecular predictors of outcome in Korean patients with advanced non-small cell lung cancer treated with erlotinib.",
+              "metadata": {
+                "doc_id": "sample_376_doc_3",
+                "sample_index": 376,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 20,
+                "title": ""
+              }
+            }
+          ],
+          "answer": "The passages do not provide sufficient information to answer this question. While Documents 1 and 2 mention investigating the prognostic significance of diabetes mellitus (DM) in advanced non-small cell lung cancer (NSCLC) and small cell lung cancer (SCLC), respectively, they do not provide the results of these investigations. Document 3 discusses the risk of developing lung cancer in relation to COPD and type 2 diabetes mellitus, but not the prognostic value of DM in treating NSCLC. Document 4 is unrelated to NSCLC, and Document 5 does not mention diabetes mellitus. Therefore, the passages do not contain enough information to determine if diabetes mellitus is a negative prognostic factor for the treatment of advanced NSCLC.",
+          "relevance_score__pred": 0.7273,
+          "relevance_score__gt": 0.2857,
+          "relevance_score__deviation": 0.4416,
+          "utilization_score__pred": 0.5455,
+          "utilization_score__gt": 0.1429,
+          "utilization_score__deviation": 0.4026,
+          "completeness_score__pred": 0.625,
+          "completeness_score__gt": 0.5,
+          "completeness_score__deviation": 0.125,
+          "adherence_score__pred": 0.0,
+          "adherence_score__gt": 1.0,
+          "adherence_score__deviation": -1.0
+        },
+        {
+          "query": "Do elderly persons need to be encouraged to drink more fluids?",
+          "retrieved_documents": [
+            {
+              "text": "",
+              "title": "",
+              "content": "The fluid recommendation for adults aged 70+ years has been criticised on the basis of a low prevalence of dehydration in community-dwelling older adults. This study explores whether the low prevalence might reflect limitations of individual dehydration indices.",
+              "metadata": {
+                "doc_id": "sample_3_doc_1",
+                "sample_index": 3,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 38,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Increases in alcohol related mortality and morbidity have been reported among older people in England over the last decade. There is, however, evidence that drinking is protective for some health conditions. The validity of this evidence has been questioned due to residual confounding and selection bias. The aim of this study is to clarify which drinking profiles and other demographic characteristics are associated with poor self-rated health among a community-based sample of older adults in England. The study also examines whether drinking designated as being \"increasing-risk\" or \"higher-risk\" is associated with poorer self-rated health.",
+              "metadata": {
+                "doc_id": "sample_128_doc_1",
+                "sample_index": 128,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 94,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Dehydration in older adults contributes to increased morbidity and mortality during hospitalization. As such, early diagnosis of dehydration may improve patient outcome and reduce the burden on healthcare. This prospective study investigated the diagnostic accuracy of routinely used physical signs, and noninvasive markers of hydration in urine and saliva.",
+              "metadata": {
+                "doc_id": "sample_3_doc_4",
+                "sample_index": 3,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 49,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Secondary school students often do not drink sufficient quantities of water during the school day to prevent dehydration, promote learning and good health. The study aimed to measure the effect of health promotion and the free provision of cooled filtered water on the consumption of water and soft drinks. It also aimed to explore students' views of drinking water provision.",
+              "metadata": {
+                "doc_id": "sample_536_doc_1",
+                "sample_index": 536,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 60,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "The number of geriatric patients with lung cancer is expected to increase in the next few years, especially patients over 80, and therefore it is important to know where the therapeutic limits should be drawn. Is surgery a good option in patients over 80?",
+              "metadata": {
+                "doc_id": "sample_22_doc_3",
+                "sample_index": 22,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 44,
+                "title": ""
+              }
+            }
+          ],
+          "answer": "The passages suggest that elderly persons may need to be encouraged to drink more fluids. Document 1 mentions that the fluid recommendation for adults aged 70+ years has been criticized due to a low prevalence of dehydration, but this may reflect limitations of individual dehydration indices. Document 3 highlights that dehydration in older adults contributes to increased morbidity and mortality during hospitalization, implying that adequate fluid intake is crucial. However, the passages do not provide direct evidence that elderly persons need to be encouraged to drink more fluids. Document 1 and 3 focus on dehydration diagnosis and consequences, rather than prevention through fluid intake. More information is needed to fully answer this question.",
+          "relevance_score__pred": 0.3333,
+          "relevance_score__gt": 0.7692,
+          "relevance_score__deviation": -0.4359,
+          "utilization_score__pred": 0.1333,
+          "utilization_score__gt": 0.4615,
+          "utilization_score__deviation": -0.3282,
+          "completeness_score__pred": 0.4,
+          "completeness_score__gt": 0.6,
+          "completeness_score__deviation": -0.2,
+          "adherence_score__pred": 0.0,
+          "adherence_score__gt": 1.0,
+          "adherence_score__deviation": -1.0
+        },
+        {
+          "query": "Do the economic and social factors play an important role in relation to the compliance of contact lenses care routines?",
+          "retrieved_documents": [
+            {
+              "text": "",
+              "title": "",
+              "content": "To evaluate the behavior of contact lens wearers of distinct economic and social groups in relation to their contact lens care routines.",
+              "metadata": {
+                "doc_id": "sample_4_doc_0",
+                "sample_index": 4,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 22,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "The authors studied 60 patients of distinct social groups at the same Contact Lens Department at Sorocaba Eye Hospital in Sorocaba, Brazil. The patients were divided in two groups. Group 1 included 31 patients who could not pay for medical assistance and were in the Government Health Assistance Program. Group 2 included 29 patients who had health insurance and patients paying for medical assistance. We studied their age, sex, period of contact lens wear, and type of contact lenses that they were wearing and related these variables to the contact lens care routines.",
+              "metadata": {
+                "doc_id": "sample_4_doc_1",
+                "sample_index": 4,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 93,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Thirty-one (30%) patients were currently out of specialist contact. No significant differences were found between those in and out of contact on any measures of diagnosis or psychiatric history. Those in contact had significantly more symptoms, poorer social functioning, poorer quality of life, and more needs for care. The proportion out of contact was significantly higher in two practices that had employed their own mental health professionals to provides services on site for severe mental illnesses. Two factors remained significant predictors of contact in a logistic regression model: whether or not the patient's practice offered a special service on site, and greater patient needs for care.",
+              "metadata": {
+                "doc_id": "sample_1097_doc_4",
+                "sample_index": 1097,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 106,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "To compare the habits of United States (US) soft contact lens (SCL) wearers who bought SCLs from their eye care practitioner (ECP), on the internet/telephone, or at retail (not where they were examined) to test the effect of proximity to the prescriber on SCL wear and care practices.",
+              "metadata": {
+                "doc_id": "sample_4_doc_2",
+                "sample_index": 4,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 48,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "One of the goals of Indonesian health policy is 'Health for All'; this includes dental health care. Therefore, it is important to continually evaluate and dynamically assess the effects of government policies, particularly whether these policies promote or obstruct social justice. This study is intended to describe the need for and utilisation of dental care and how disparities in dental care provision to people of varying socioeconomic status (SES) have changed over time.",
+              "metadata": {
+                "doc_id": "sample_248_doc_2",
+                "sample_index": 248,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 73,
+                "title": ""
+              }
+            }
+          ],
+          "answer": "The passages suggest that economic and social factors may play a role in contact lens care routines. In Document 2, patients were divided into two groups based on their ability to pay for medical assistance, with Group 1 including patients in the Government Health Assistance Program and Group 2 including patients with health insurance or paying for medical assistance. This implies that economic factors were considered in the study. However, the passages do not provide direct evidence of the impact of economic and social factors on compliance with contact lens care routines. Document 3 discusses factors related to patient contact with healthcare services, but it is not directly related to contact lens care. Document 4 mentions comparing habits of SCL wearers who bought lenses from different sources, but it does not explicitly address economic and social factors. Overall, while the passages hint at the importance of economic and social factors, they do not provide sufficient information to fully answer the question.",
+          "relevance_score__pred": 0.4667,
+          "relevance_score__gt": 0.7,
+          "relevance_score__deviation": -0.2333,
+          "utilization_score__pred": 0.2,
+          "utilization_score__gt": 0.1,
+          "utilization_score__deviation": 0.1,
+          "completeness_score__pred": 0.4286,
+          "completeness_score__gt": 0.1429,
+          "completeness_score__deviation": 0.2857,
+          "adherence_score__pred": 0.0,
+          "adherence_score__gt": 1.0,
+          "adherence_score__deviation": -1.0
+        },
+        {
+          "query": "Are prostate biopsies mandatory in patients with prostate-specific antigen increase during intravesical immuno- or chemotherapy for superficial bladder cancer?",
+          "retrieved_documents": [
+            {
+              "text": "",
+              "title": "",
+              "content": "Aim of this study was to evaluate if there was a significant association between intravesical immuno- or chemotherapy and the increase of PSA serum level. It could be important to avoid useless prostate biopsies.",
+              "metadata": {
+                "doc_id": "sample_5_doc_0",
+                "sample_index": 5,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 34,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "The objective of this study was to evaluate the incidence of prostatic carcinoma in patients treated by intravesical BCG-therapy for superficial bladder cancer and presenting granulomatous prostatitis. The authors discuss the problems of interpretation of total PSA and the potential indications for prostatic biopsies in this population.",
+              "metadata": {
+                "doc_id": "sample_5_doc_2",
+                "sample_index": 5,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 47,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "To evaluate whether it is worthwhile to implement routine random biopsies from the normal-looking urothelium in the management of patients with primary superficial bladder cancer.",
+              "metadata": {
+                "doc_id": "sample_5_doc_3",
+                "sample_index": 5,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 25,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Patients with a high risk for superficial bladder cancer are treated by topical immuno-or chemotherapy after transurethral resection to reduce the chance of recurrence and/or progression. The aim of this study was to analyse if cytogenetical abnormalities, which are known to be constantly related to bladder cancer, are modified or eliminated by topical immuno- or chemotherapy.",
+              "metadata": {
+                "doc_id": "sample_5_doc_4",
+                "sample_index": 5,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 56,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Is there a role for intravesical chemotherapy in a patient who has a first recurrence of a T1G3 bladder cancer?",
+              "metadata": {
+                "doc_id": "sample_5_doc_1",
+                "sample_index": 5,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 20,
+                "title": ""
+              }
+            }
+          ],
+          "answer": "The passages do not provide sufficient information to answer this question directly. However, Document 1 mentions that the study aims to evaluate the association between intravesical immuno- or chemotherapy and the increase of PSA serum level to avoid useless prostate biopsies. Document 2 discusses the potential indications for prostatic biopsies in patients with granulomatous prostatitis after intravesical BCG-therapy for superficial bladder cancer. These studies suggest that prostate biopsies may not always be necessary in patients with increased PSA levels during intravesical immuno- or chemotherapy, but a definitive conclusion cannot be drawn from the provided passages.",
+          "relevance_score__pred": 0.5,
+          "relevance_score__gt": 0.5,
+          "relevance_score__deviation": 0.0,
+          "utilization_score__pred": 0.5,
+          "utilization_score__gt": 0.25,
+          "utilization_score__deviation": 0.25,
+          "completeness_score__pred": 1.0,
+          "completeness_score__gt": 0.5,
+          "completeness_score__deviation": 0.5,
+          "adherence_score__pred": 0.0,
+          "adherence_score__gt": 1.0,
+          "adherence_score__deviation": -1.0
+        },
+        {
+          "query": "Do working conditions explain the increased risks of disability pension among men and women with low education?",
+          "retrieved_documents": [
+            {
+              "text": "",
+              "title": "",
+              "content": "Rates of disability pension are greatly increased among people with low education. This study examines the extent to which associations between education and disability pensions might be explained by differences in working conditions. Information on individuals at age 13 years was used to assess confounding of associations.",
+              "metadata": {
+                "doc_id": "sample_6_doc_1",
+                "sample_index": 6,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 47,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Women were found to have higher rates of disability pension than men, regardless of diagnosis, whereas men had a steeper increase in disability pension by declining educational level. Adjustment of associations for paternal education, ambition to study, and intellectual performance at age 13 had a considerable attenuating effect, also when disability pension with a musculoskeletal diagnosis was the outcome. Despite this, high physical strain at work and low job control both contributed to explain the associations between low education and disability pensions in multivariable models.",
+              "metadata": {
+                "doc_id": "sample_6_doc_0",
+                "sample_index": 6,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 85,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "10.5% of our eligible sample had disability pension at the time of the survey. The risk was more than five times higher for those with primary school than for those with university education and 50% higher for women than for men. Lowest score on the Generalized Self Efficacy test (poor mastering) had an age-, gender-, and health-adjusted OR of 2.4 compared with the highest level of mastering. Adjusting for mastering lowered the educational divide but not that of gender, when health indicators were taken into consideration Those reporting poor general health had a seven times higher risk than those with good health, and those with a chronic somatic disease, musculoskeletal pain, or poor psychiatric health had a somewhat lower increase in risk of disability pension. Health measures did reduce the impact of education, but not of gender, when adjusted for mastering.",
+              "metadata": {
+                "doc_id": "sample_6_doc_2",
+                "sample_index": 6,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 141,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "The aim of this study was to investigate whether job strain, psychological demands, and decision latitude are independent determinants of disability pension rates over a 12-year follow-up period.",
+              "metadata": {
+                "doc_id": "sample_6_doc_3",
+                "sample_index": 6,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 28,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Leisure-time physical activity (PA) has been established to be related to more years lived without disability. However, less is known about the relationship between occupational PA and disability in old age. The aim of the study was 1) to investigate whether midlife occupational PA is related to late-life disability, and 2) to test the hypothesis that the association differs according to the occupational categories of blue and white collar work.",
+              "metadata": {
+                "doc_id": "sample_704_doc_4",
+                "sample_index": 704,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 70,
+                "title": ""
+              }
+            }
+          ],
+          "answer": "According to Document 2, high physical strain at work and low job control both contributed to explain the associations between low education and disability pensions in multivariable models. This suggests that working conditions do play a role in explaining the increased risks of disability pension among individuals with low education. Additionally, Document 1 mentions that the study examines the extent to which associations between education and disability pensions might be explained by differences in working conditions. Document 3 also notes that health measures did reduce the impact of education on disability pension risk, but not that of gender. Overall, the passages suggest that working conditions, such as physical strain and job control, are factors that contribute to the increased risks of disability pension among individuals with low education, but may not fully explain the gender differences observed.",
+          "relevance_score__pred": 0.4,
+          "relevance_score__gt": 0.4615,
+          "relevance_score__deviation": -0.0615,
+          "utilization_score__pred": 0.2,
+          "utilization_score__gt": 0.1538,
+          "utilization_score__deviation": 0.0462,
+          "completeness_score__pred": 0.5,
+          "completeness_score__gt": 0.3333,
+          "completeness_score__deviation": 0.1667,
+          "adherence_score__pred": 0.0,
+          "adherence_score__gt": 1.0,
+          "adherence_score__deviation": -1.0
+        },
+        {
+          "query": "Platelet aggregation according to body mass index in patients undergoing coronary stenting: should clopidogrel loading-dose be weight adjusted?",
+          "retrieved_documents": [
+            {
+              "text": "",
+              "title": "",
+              "content": "A 300 mg clopidogrel loading-dose (LD) is widely used as an adjunct antithrombotic treatment to reduce the risk of thrombotic events early after coronary stenting (CS). Antithrombotic drugs commonly used during percutaneous coronary interventions, such as heparin and platelet glycoprotein IIb/IIIa inhibitors, but not clopidogrel LD, are weight-adjusted, and few data are available on which is the most effective clopidogrel LD regimen. The aim of this study was to assess whether body mass index (BMI) influenced platelet response to clopidogrel LD in patients undergoing CS.",
+              "metadata": {
+                "doc_id": "sample_7_doc_0",
+                "sample_index": 7,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 85,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Platelet aggregation (PA) was measured in 143 patients, while they were taking aspirin, with light transmission aggregometry using adenosine diphosphate as an agonist at baseline (T0) and at clopidogrel steady state (T1). After T1) clopidogrel was stopped and substituted with ticlopidine. Then PA was assessed at ticlopidine steady state (T2). Resistance was defined as an absolute difference between T0 and after-treatment (T1 or T2) PA<or =10%.",
+              "metadata": {
+                "doc_id": "sample_7_doc_3",
+                "sample_index": 7,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 66,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "We sought to determine whether patients receiving chronic clopidogrel therapy undergoing nonemergent stenting who display high on-treatment preprocedural platelet aggregation measured by standard light transmittance aggregometry and thrombelastography (TEG) will be at increased risk for poststenting ischemic events.",
+              "metadata": {
+                "doc_id": "sample_7_doc_2",
+                "sample_index": 7,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 38,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "The optimal dose of heparin during elective PCI in patients with stable angina is unknown. Existing guidelines are based on limited data. We interrogated data from the PCI database. Patients with stable angina undergoing planned transradial PCI for uncomplicated single lesions were included. The main endpoint was troponin I release. We compared a fixed heparin dose (3000 U) UFH to a weight-adjusted dose.",
+              "metadata": {
+                "doc_id": "sample_801_doc_1",
+                "sample_index": 801,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 63,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "The association between obesity and bleeding after percutaneous coronary intervention (PCI) is not well defined. We investigated the impact of body mass index (BMI) on PCI-related bleeding, and whether bivalirudin, compared to heparin, used as PCI anticoagulant modifies this relationship.",
+              "metadata": {
+                "doc_id": "sample_7_doc_4",
+                "sample_index": 7,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 40,
+                "title": ""
+              }
+            }
+          ],
+          "answer": "The passages do not provide sufficient information to answer this question. While Document 1 mentions that the aim of the study was to assess whether body mass index (BMI) influenced platelet response to clopidogrel loading-dose in patients undergoing coronary stenting, it does not provide the results of the study. Documents 2 and 3 discuss platelet aggregation in relation to clopidogrel therapy, but do not address the issue of weight adjustment. Document 4 discusses heparin dosing during PCI, and Document 5 investigates the impact of BMI on PCI-related bleeding, but neither addresses the question of whether clopidogrel loading-dose should be weight-adjusted.",
+          "relevance_score__pred": 0.4375,
+          "relevance_score__gt": 0.375,
+          "relevance_score__deviation": 0.0625,
+          "utilization_score__pred": 0.1875,
+          "utilization_score__gt": 0.1875,
+          "utilization_score__deviation": 0.0,
+          "completeness_score__pred": 0.2857,
+          "completeness_score__gt": 0.5,
+          "completeness_score__deviation": -0.2143,
+          "adherence_score__pred": 0.0,
+          "adherence_score__gt": 1.0,
+          "adherence_score__deviation": -1.0
+        },
+        {
+          "query": "Interleukin 27 polymorphisms in HCV RNA positive patients: is there an impact on response to interferon therapy?",
+          "retrieved_documents": [
+            {
+              "text": "",
+              "title": "",
+              "content": "Interleukin 27 (IL-27) has pleiotropic properties that can either limit or enhance immune responses. Recent studies revealed that single nucleotide polymorphisms (SNPs) of the IL-27 promoter region modulate the development of infectious diseases and individual's susceptibility to therapeutic response. Little is known about the relationship between IL-27 single nucleotide polymorphisms and therapy response in patients infected by hepatitis C virus (HCV). In this study we have investigated the potential role of SNPs in the promoter region of IL27 p28 gene (alleles rs153109) on the outcome of HCV infected patients.",
+              "metadata": {
+                "doc_id": "sample_8_doc_0",
+                "sample_index": 8,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 89,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "The aim of the present study was to determine whether hepatitis C virus (HCV) RNA present at week 12 is a good predictor of the response to interferon (IFN) monotherapy in hemodialysis patients with hepatitis C.",
+              "metadata": {
+                "doc_id": "sample_8_doc_3",
+                "sample_index": 8,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 36,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Retrospective studies have suggested that early loss of serum HCV-RNA predicts sustained response to alpha-interferon treatment in chronic hepatitis C, but the optimal duration of therapy after loss of HCV-RNA is not known. The aims of this study were: a) to prospectively evaluate the effectiveness of HCV-RNA testing after 1 month of alpha-interferon treatment in the prediction of sustained response, and b) to compare the efficacy of 6 and 12 months of therapy in patients with a negative serum HCV-RNA test after the first month of treatment.",
+              "metadata": {
+                "doc_id": "sample_1172_doc_0",
+                "sample_index": 1172,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 87,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Decreased alanine aminotransferase (ALT) level is the accepted basic indicator of an interferon (IFN) therapeutic effect in chronic hepatitis C. This study assessed whether delayed normalization of ALT predicts a poor response to a combined therapy of IFN and ribavirin in patients with chronic hepatitis C virus (HCV) infection.",
+              "metadata": {
+                "doc_id": "sample_428_doc_4",
+                "sample_index": 428,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 49,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Antibodies to HCV were detected in 121 of 148 (81.8%) patients. Steatosis, distributed in different histological patterns, was found in 73 of 121 (60%) HCV-positive and in 14 of 27 (52%) HCV-negative patients (P = NS). Using simple logistic regression, the association Of HCV to steatosis was weak and not statistically significant (OR, 1.14; 95% CI, 0.61-3.27). The same was true for hyperlipidaemia (OR, 4.45; 95% CI, 0.52-37.9). A strong and statistically significant association was found, however, between obesity and steatosis (OR, 4.18) and between steatosis and the highest degree of histological severity (Liver cirrhosis vs chronic persistent hepatitis: OR, 12.8). Using multivariate analysis, the association between steatosis and HCV was shown to be not significant. Hyperlipidaemia, among all the independent variables tested, was shown to be co-linear with obesity.",
+              "metadata": {
+                "doc_id": "sample_739_doc_4",
+                "sample_index": 739,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 130,
+                "title": ""
+              }
+            }
+          ],
+          "answer": "The passages do not provide sufficient information to directly answer the question about the impact of Interleukin 27 polymorphisms on response to interferon therapy in HCV RNA positive patients. However, Document 1 mentions that single nucleotide polymorphisms (SNPs) of the IL-27 promoter region modulate the development of infectious diseases and individual's susceptibility to therapeutic response, and it investigated the potential role of SNPs in the promoter region of IL27 p28 gene on the outcome of HCV infected patients, but the results are not provided. The other documents discuss predictors of response to interferon therapy, such as HCV RNA levels and ALT levels, but do not mention IL-27 polymorphisms.",
+          "relevance_score__pred": 0.5333,
+          "relevance_score__gt": 0.5333,
+          "relevance_score__deviation": -0.0,
+          "utilization_score__pred": 0.4667,
+          "utilization_score__gt": 0.5333,
+          "utilization_score__deviation": -0.0666,
+          "completeness_score__pred": 0.875,
+          "completeness_score__gt": 1.0,
+          "completeness_score__deviation": -0.125,
+          "adherence_score__pred": 0.0,
+          "adherence_score__gt": 1.0,
+          "adherence_score__deviation": -1.0
+        },
+        {
+          "query": "Can the Functional Movement Screen™ be used to capture changes in spine and knee motion control following 12 weeks of training?",
+          "retrieved_documents": [
+            {
+              "text": "",
+              "title": "",
+              "content": "To examine whether objective measures of spine and frontal plane knee motion exhibited during Functional Movement Screen™ (FMS) task performance changed following a movement-guided fitness (MOV) and conventional fitness (FIT) exercise intervention.",
+              "metadata": {
+                "doc_id": "sample_9_doc_0",
+                "sample_index": 9,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 32,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Secondary analysis of a randomized controlled experiment. Before and after 12 weeks of exercise, participants' kinematics were quantified while performing the FMS and a series of general whole-body movement tasks.",
+              "metadata": {
+                "doc_id": "sample_9_doc_2",
+                "sample_index": 9,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 30,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "The post-training kinematic changes exhibited by trainees while performing the FMS tasks were similar in magnitude (effect size < 0.8) to those exhibited by CON. However, when performing the battery of general whole-body movement tasks, only MOV showed significant improvements in spine and frontal plane knee motion control (effect size > 0.5).",
+              "metadata": {
+                "doc_id": "sample_9_doc_3",
+                "sample_index": 9,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 52,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "To examine the relationship between the composite Functional Movement Screen (FMS) score and performers' spine and frontal plane knee motion.",
+              "metadata": {
+                "doc_id": "sample_9_doc_1",
+                "sample_index": 9,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 20,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Functional reach (FR) is a new clinical measurement intended to assess dynamic balance. The purposes of this study were (1) to measure the mean FR distance in healthy elders compared with individuals with known balance impairments, (2) to analyze the extent to which FR measures dynamic balance, and (3) to describe movement strategies used during FR.",
+              "metadata": {
+                "doc_id": "sample_80_doc_0",
+                "sample_index": 80,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 56,
+                "title": ""
+              }
+            }
+          ],
+          "answer": "The passages suggest that the Functional Movement Screen (FMS) can be used to capture changes in spine and knee motion control, but with limitations. After 12 weeks of exercise, the post-training kinematic changes in FMS tasks were similar between movement-guided fitness (MOV) and conventional fitness (FIT) groups, with small effect sizes (< 0.8). However, when performing general whole-body movement tasks, only the MOV group showed significant improvements in spine and frontal plane knee motion control (effect size > 0.5). This indicates that the FMS may not be sensitive enough to detect changes in spine and knee motion control following training, but it can be used in conjunction with other movement tasks to assess improvements.",
+          "relevance_score__pred": 0.625,
+          "relevance_score__gt": 0.5714,
+          "relevance_score__deviation": 0.0536,
+          "utilization_score__pred": 0.375,
+          "utilization_score__gt": 0.4286,
+          "utilization_score__deviation": -0.0536,
+          "completeness_score__pred": 0.6,
+          "completeness_score__gt": 0.75,
+          "completeness_score__deviation": -0.15,
+          "adherence_score__pred": 0.0,
+          "adherence_score__gt": 0.0,
+          "adherence_score__deviation": 0.0
+        },
+        {
+          "query": "Is the time interval between surgery and radiotherapy important in operable nonsmall cell lung cancer?",
+          "retrieved_documents": [
+            {
+              "text": "",
+              "title": "",
+              "content": "To evaluate the influence of prognostic factors in postoperative radiotherapy of NSCLC with special emphasis on the time interval between surgery and start of radiotherapy.",
+              "metadata": {
+                "doc_id": "sample_10_doc_0",
+                "sample_index": 10,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 25,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "The optimal interval between neoadjuvant chemoradiation therapy (CRT) and surgery in the treatment of patients with distal rectal cancer is controversial. The purpose of this study is to evaluate whether this interval has an impact on survival.",
+              "metadata": {
+                "doc_id": "sample_10_doc_2",
+                "sample_index": 10,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 37,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Although many prognostic factors have been identified for lung cancers, new ones are needed to determine the course of the disease. Recently, a high neutrophil to lymphocyte ratio (NLR) prior to surgery or treatment has been shown to be an indicator of prognosis for cancer. The aim of this study was to investigate the value of NLR as a prognostic factor and the correlation between NLR and other probable clinical prognostic factors in non small cell lung cancer patients prior to treatment.",
+              "metadata": {
+                "doc_id": "sample_97_doc_0",
+                "sample_index": 97,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 82,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Lung cancer diagnostic and treatment delays have been described for several patient populations. However, few studies have analyzed these intervals among patients treated in contemporary health care systems in the United States. We therefore studied the timing of lung cancer diagnosis and treatment at a U.S. medical center providing care to a diverse patient population within two different hospital systems.",
+              "metadata": {
+                "doc_id": "sample_460_doc_3",
+                "sample_index": 460,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 60,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Recent guidelines have specified a number of waiting time targets to prevent delay in the treatment of lung cancer. This study was carried out to assess the quality of lung cancer services and compare with national recommendations.",
+              "metadata": {
+                "doc_id": "sample_460_doc_1",
+                "sample_index": 460,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 37,
+                "title": ""
+              }
+            }
+          ],
+          "answer": "The passages suggest that the time interval between surgery and radiotherapy is a topic of interest in the treatment of non-small cell lung cancer (NSCLC). Document 1 specifically aims to evaluate the influence of prognostic factors, including the time interval between surgery and start of radiotherapy, in postoperative radiotherapy of NSCLC. While the passages do not provide a direct answer to the question, they imply that the timing of radiotherapy in relation to surgery may be an important factor in the treatment of NSCLC. However, the passages do not provide sufficient information to determine the exact importance of this interval.",
+          "relevance_score__pred": 0.6364,
+          "relevance_score__gt": 0.5385,
+          "relevance_score__deviation": 0.0979,
+          "utilization_score__pred": 0.0909,
+          "utilization_score__gt": 0.3077,
+          "utilization_score__deviation": -0.2168,
+          "completeness_score__pred": 0.1429,
+          "completeness_score__gt": 0.5714,
+          "completeness_score__deviation": -0.4285,
+          "adherence_score__pred": 0.0,
+          "adherence_score__gt": 1.0,
+          "adherence_score__deviation": -1.0
+        },
+        {
+          "query": "Comparison of creamatocrit and protein concentration in each mammary lobe of the same breast: does the milk composition of each mammary lobe differ in the same breast?",
+          "retrieved_documents": [
+            {
+              "text": "",
+              "title": "",
+              "content": "Seventeen mothers were enrolled in this study. Foremilk was obtained from three nipple openings on each breast. After the breastfeeding session, hindmilk was sampled in the same manner. We measured creamatocrit (CrCt) and analyzed the protein concentration. Data were analyzed with the paired t test and Wilcoxon signed-rank sum test where appropriate. Coefficient of variance (COV) was calculated to identify the variation of protein content among different mammary lobes.",
+              "metadata": {
+                "doc_id": "sample_11_doc_0",
+                "sample_index": 11,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 69,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "We sought to determine if different mammary lobes produce milk of varying composition.",
+              "metadata": {
+                "doc_id": "sample_11_doc_1",
+                "sample_index": 11,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 13,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "The fat and protein contents of the foremilk and hindmilk from each milk duct differed despite being expressed from the same breast. When we compared the CrCt values and protein content obtained from three ducts, a greater than 5% difference between the maximum and minimum value was observed in 64 out of 68 breasts (94%) for CrCt and in 61 out of 68 breasts (91%) for protein content. The mean COV of protein content in each breast was 13.2 +/- 8.0 (range, 1.2-45.3).",
+              "metadata": {
+                "doc_id": "sample_11_doc_2",
+                "sample_index": 11,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 83,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "This study examined the relationships among diet, exercise intensity, and breast milk composition in lactating women.",
+              "metadata": {
+                "doc_id": "sample_11_doc_3",
+                "sample_index": 11,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 16,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Large breast size is associated with increased risk of late adverse effects after surgery and radiotherapy for early breast cancer. It is hypothesised that effects of radiotherapy on adipose tissue are responsible for some of the effects seen. In this study, the association of breast composition with late effects was investigated along with other breast features such as fibroglandular tissue distribution, seroma and scar.",
+              "metadata": {
+                "doc_id": "sample_459_doc_0",
+                "sample_index": 459,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 64,
+                "title": ""
+              }
+            }
+          ],
+          "answer": "The milk composition of each mammary lobe differs in the same breast. A study found that the fat and protein contents of foremilk and hindmilk from each milk duct differed, despite being expressed from the same breast. When comparing creamatocrit (CrCt) values and protein content from three ducts, a greater than 5% difference was observed in 64 out of 68 breasts (94%) for CrCt and in 61 out of 68 breasts (91%) for protein content. The mean coefficient of variance (COV) of protein content in each breast was 13.2 +/- 8.0, with a range of 1.2-45.3, indicating variation in protein content among different mammary lobes.",
+          "relevance_score__pred": 0.6429,
+          "relevance_score__gt": 0.25,
+          "relevance_score__deviation": 0.3929,
+          "utilization_score__pred": 0.2143,
+          "utilization_score__gt": 0.1667,
+          "utilization_score__deviation": 0.0476,
+          "completeness_score__pred": 0.3333,
+          "completeness_score__gt": 0.6667,
+          "completeness_score__deviation": -0.3334,
+          "adherence_score__pred": 1.0,
+          "adherence_score__gt": 1.0,
+          "adherence_score__deviation": 0.0
+        },
+        {
+          "query": "Do T1a breast cancers profit from adjuvant systemic therapy?",
+          "retrieved_documents": [
+            {
+              "text": "",
+              "title": "",
+              "content": "Recent retrospective studies have suggested that patients with T1a,bN0M0 human epidermal growth factor receptor 2 (HER2)-positive breast cancer are at a higher risk for recurrence and might benefit from adjuvant trastuzumab. The absolute benefits associated with treating this subgroup are uncertain.",
+              "metadata": {
+                "doc_id": "sample_12_doc_4",
+                "sample_index": 12,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 41,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "With the demonstration that adjuvant chemotherapy reduces the death rate from breast cancer by roughly one quarter across all risk groups, controversy has reigned regarding possible exclusions from therapy. T1a and T1b N0 tumors (1-cm diameter and smaller with negative axillary nodes) have been considered at low risk for metastasis since the report from Memorial Sloan-Kettering Cancer Center of a 90% survival rate at 10 years. Subsequent reports have suggested an even more favorable prognosis for this group. However, consensus statements advise selecting some of these women for treatment, and many do receive adjuvant chemotherapy.",
+              "metadata": {
+                "doc_id": "sample_12_doc_0",
+                "sample_index": 12,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 95,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "A database of 879 patients who underwent breast cancer surgery enrolled between January 2003 and December 2011 was reviewed. Patients with luminal A cancers were selected and grouped into those who received adjuvant hormonal therapy with (group C+) or without (group C - ) adjuvant systemic therapy.",
+              "metadata": {
+                "doc_id": "sample_12_doc_1",
+                "sample_index": 12,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 47,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "To evaluate if adjuvant treatment for early-stage (Stage I-IIIa) node (+) breast cancer with hormone therapy, chemotherapy, or combination therapy is cost-effective in older patients.",
+              "metadata": {
+                "doc_id": "sample_12_doc_3",
+                "sample_index": 12,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 25,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Evaluate if adjuvant treatment for early-stage node (-) breast cancer with hormone therapy, chemotherapy, or combination therapy is cost-effective in older patients.",
+              "metadata": {
+                "doc_id": "sample_854_doc_4",
+                "sample_index": 854,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 22,
+                "title": ""
+              }
+            }
+          ],
+          "answer": "The passages do not provide sufficient information to directly answer whether T1a breast cancers profit from adjuvant systemic therapy. However, Document 2 mentions that T1a and T1b N0 tumors are considered at low risk for metastasis, with a reported 90% survival rate at 10 years, suggesting a favorable prognosis. Despite this, consensus statements advise selecting some of these women for treatment, and many do receive adjuvant chemotherapy. Document 1 specifically notes that patients with T1a,bN0M0 HER2-positive breast cancer may benefit from adjuvant trastuzumab, but the absolute benefits are uncertain.",
+          "relevance_score__pred": 0.5,
+          "relevance_score__gt": 0.3077,
+          "relevance_score__deviation": 0.1923,
+          "utilization_score__pred": 0.4,
+          "utilization_score__gt": 0.3077,
+          "utilization_score__deviation": 0.0923,
+          "completeness_score__pred": 0.8,
+          "completeness_score__gt": 0.75,
+          "completeness_score__deviation": 0.05,
+          "adherence_score__pred": 0.0,
+          "adherence_score__gt": 1.0,
+          "adherence_score__deviation": -1.0
+        },
+        {
+          "query": "Blood donation mobile applications: are donors ready?",
+          "retrieved_documents": [
+            {
+              "text": "",
+              "title": "",
+              "content": "A total of 982 ethnically diverse respondents of various age groups and prior donation experiences were surveyed. Among the respondents, 87.3% had ready access to smart phones. E-mail was chosen by 62.1% as the currently preferred method when contacted by the blood center, followed by texting (10.1%). App features desired by most respondents were the abilities to request appointments 24/7 (76.8%) and to receive appointment confirmations quickly (81.3%). Many were concerned about receiving too many alerts or messages (64.1%) or insufficient protection for personal information (53.5%). Overall, 67.7% of respondents indicated that they were likely to use a blood donation mobile app. Likelihood was not significantly different by sex or ethnicity, and the impact of education level was limited. Donors who currently made donation appointments via telephone or a website were equally likely to use such an app. However, donors older than 45 years were less likely than younger donors (p = 0.001), and donors with more than five lifetime donations were more likely than less frequent donors to use such an app (p = 0.02).",
+              "metadata": {
+                "doc_id": "sample_13_doc_1",
+                "sample_index": 13,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 176,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "E-mail invitations were sent to blood donors in a large metropolitan area to participate in a Web-based survey designed to gauge their readiness and interest level for a blood donation mobile application (\"app\").",
+              "metadata": {
+                "doc_id": "sample_13_doc_0",
+                "sample_index": 13,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 33,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "The rapid rise of mobile communication technologies has the potential to dramatically change and improve blood donor recruitment and retention efforts.",
+              "metadata": {
+                "doc_id": "sample_13_doc_2",
+                "sample_index": 13,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 21,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Blood donation centres measure donor BPs before accepting donations and thus provide a unique opportunity for hypertension screening and education.MATERIALS/",
+              "metadata": {
+                "doc_id": "sample_1206_doc_1",
+                "sample_index": 1206,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 20,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "A total of 703 women from a Basic Health Area of Barcelona, and with a mobile phone number registered, were invited to participate in a breast cancer screening programme between 25 January 2011 and 22 March 2011. The control group (n=470) followed the usual appointment track, and the intervention group (n=233) received, after the first letter of invitation, a mobile phone short message reminder. The differences between the two groups were analysed, comparing the uptake rates according to age, educational level, and participation in previous round, as well as the number of re-invitation calls to non-attenders according to uptake, age and level of education;and the percentages of exclusions of both groups.",
+              "metadata": {
+                "doc_id": "sample_214_doc_4",
+                "sample_index": 214,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 111,
+                "title": ""
+              }
+            }
+          ],
+          "answer": "According to the passages, 67.7% of surveyed respondents indicated that they were likely to use a blood donation mobile app. The likelihood of using the app was not significantly different by sex or ethnicity, and the impact of education level was limited. However, donors older than 45 years were less likely to use the app (p = 0.001), while donors with more than five lifetime donations were more likely to use it (p = 0.02). The most desired app features were the ability to request appointments 24/7 (76.8%) and receive appointment confirmations quickly (81.3%). Despite concerns about receiving too many alerts (64.1%) or insufficient protection for personal information (53.5%), the majority of respondents expressed interest in using a blood donation mobile app.",
+          "relevance_score__pred": 0.7333,
+          "relevance_score__gt": 0.6154,
+          "relevance_score__deviation": 0.1179,
+          "utilization_score__pred": 0.3333,
+          "utilization_score__gt": 0.3077,
+          "utilization_score__deviation": 0.0256,
+          "completeness_score__pred": 0.4545,
+          "completeness_score__gt": 0.5,
+          "completeness_score__deviation": -0.0455,
+          "adherence_score__pred": 1.0,
+          "adherence_score__gt": 1.0,
+          "adherence_score__deviation": 0.0
+        },
+        {
+          "query": "Increasing mixed chimerism is an important prognostic factor for unfavorable outcome in children with acute lymphoblastic leukemia after allogeneic stem-cell transplantation: possible role for pre-emptive immunotherapy?",
+          "retrieved_documents": [
+            {
+              "text": "",
+              "title": "",
+              "content": "We recently reported that children with acute leukemias who show increasing mixed chimerism (MC) after allogeneic stem-cell transplantation have a significantly enhanced risk of relapse. Here we present the results of a prospective multicenter study to investigate (1) whether relapse of acute lymphoblastic leukemia (ALL) can be determined in advance by serial analysis of chimerism, and (2) if outcome can be influenced by withdrawal of immunosuppression and/or by low-dose donor lymphocyte infusion when increasing MC is detected.",
+              "metadata": {
+                "doc_id": "sample_14_doc_0",
+                "sample_index": 14,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 77,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "A retrospective analysis that included allograft recipients with accelerated phase and blast phase chronic myeloid leukemia or Ph(+) acute lymphoblastic leukemia who had received post-transplant maintenance TKI therapy from 2004 to 2014.",
+              "metadata": {
+                "doc_id": "sample_14_doc_3",
+                "sample_index": 14,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 32,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Blood transfusion during acute lymphoblastic leukemia (ALL) of childhood is scarcely documented. Children with ALL are immunosuppressed by both the disease and its therapy. Transfusion may contribute to the course of ALL through its transfusion-related immunomodulation (TRIM) effect.",
+              "metadata": {
+                "doc_id": "sample_14_doc_1",
+                "sample_index": 14,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 38,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Serum albumin level is considered to be a marker reflecting the nutritional status in both healthy subjects and patients with malignancies. In this study we sought to investigate the association between pretransplantation serum albumin levels and prognosis among patients with leukemia who underwent allogeneic hematopoietic stem cell transplantation (alloHSCT).",
+              "metadata": {
+                "doc_id": "sample_1100_doc_4",
+                "sample_index": 1100,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 49,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "The effect of post-transplant maintenance tyrosine kinase inhibitors (TKIs) on the outcomes of allogeneic hematopoietic stem cell transplantation in high-risk Philadelphia chromosome-positive (Ph(+)) leukemia remains unknown.",
+              "metadata": {
+                "doc_id": "sample_14_doc_4",
+                "sample_index": 14,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 26,
+                "title": ""
+              }
+            }
+          ],
+          "answer": "According to Document 1, increasing mixed chimerism (MC) after allogeneic stem-cell transplantation is a significant risk factor for relapse in children with acute leukemias, including acute lymphoblastic leukemia (ALL). The study investigated whether serial analysis of chimerism can predict relapse and if outcome can be improved by withdrawing immunosuppression and/or administering low-dose donor lymphocyte infusion when increasing MC is detected. This suggests that increasing mixed chimerism is an important prognostic factor for unfavorable outcome in children with ALL after allogeneic stem-cell transplantation, and pre-emptive immunotherapy may play a role in improving outcomes.",
+          "relevance_score__pred": 0.4444,
+          "relevance_score__gt": 0.25,
+          "relevance_score__deviation": 0.1944,
+          "utilization_score__pred": 0.2222,
+          "utilization_score__gt": 0.25,
+          "utilization_score__deviation": -0.0278,
+          "completeness_score__pred": 0.5,
+          "completeness_score__gt": 1.0,
+          "completeness_score__deviation": -0.5,
+          "adherence_score__pred": 0.0,
+          "adherence_score__gt": 1.0,
+          "adherence_score__deviation": -1.0
+        },
+        {
+          "query": "Can we target smoking groups more effectively?",
+          "retrieved_documents": [
+            {
+              "text": "",
+              "title": "",
+              "content": "Identifying ethnic differences in the age of smoking onset from nationally representative data can lead to improved targeted prevention programs and policies to combat smoking in ethnic communities.",
+              "metadata": {
+                "doc_id": "sample_15_doc_4",
+                "sample_index": 15,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 28,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Recent research has identified that the environments in which smoking has previously occurred can alone, in the absence of any explicit smoking stimuli (e.g., cigarettes, lighters), serve as cues that induce robust craving to smoke. The goal of the present study was to determine if people can similarly function as smoking and nonsmoking cues capable of directly affecting smokers' cue-induced craving.",
+              "metadata": {
+                "doc_id": "sample_152_doc_3",
+                "sample_index": 152,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 61,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Smoking influences oral health in several ways (such as the occurrence of periodontitis, teeth discolouration and oral cancer); therefore, smoking behaviour should be addressed in dental care. Dentists can play a role in primary and secondary prevention of tobacco dependence. They see their patients repeatedly over time. This study investigates whether oral health complaints can be seized as an opportunity to start smoking cessation counselling.",
+              "metadata": {
+                "doc_id": "sample_692_doc_1",
+                "sample_index": 692,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 65,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "In the overall population, smoking prevalence was 37.6%, with 23.1% being heavy smokers (=21 cig/day). Smoking prevalence did not differ significantly between sexes, but heavy smoking was more prevalent in males. Age at smoking initiation was negatively associated with the daily number of cigarettes smoked (smoking volume), but only in females. The prevalence of health-enhancing PA (high PAclass) was only 14.2%, while 45.4% of the study population was classified as insufficiently active (low PAclass). Males were more physically active than females. Logistic regression analysis showed a strong inverse association between smoking and PA that was more pronounced in males. Smoking was associated with significantly decreased odds of being either moderately or highly physically active. Smoking volume was also negatively related with PA, but this relation was more pronounced in females.",
+              "metadata": {
+                "doc_id": "sample_658_doc_4",
+                "sample_index": 658,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 130,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "We wanted to determine whether an intervention to enhance partner support helps as an adjunct to a smoking cessation program.",
+              "metadata": {
+                "doc_id": "sample_15_doc_1",
+                "sample_index": 15,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 20,
+                "title": ""
+              }
+            }
+          ],
+          "answer": "Yes, targeting smoking groups more effectively is possible. Identifying ethnic differences in the age of smoking onset can lead to improved targeted prevention programs and policies to combat smoking in ethnic communities. Additionally, understanding the environments and people that serve as smoking cues can help in developing targeted interventions. Dentists can also play a role in primary and secondary prevention of tobacco dependence by addressing smoking behavior in dental care. Furthermore, research has shown that smoking prevalence and behavior vary between sexes, with heavy smoking being more prevalent in males, and that physical activity levels are inversely associated with smoking, particularly in males. Interventions to enhance partner support can also be used as an adjunct to smoking cessation programs to target smoking groups more effectively.",
+          "relevance_score__pred": 1.0,
+          "relevance_score__gt": 0.8571,
+          "relevance_score__deviation": 0.1429,
+          "utilization_score__pred": 0.5,
+          "utilization_score__gt": 0.8571,
+          "utilization_score__deviation": -0.3571,
+          "completeness_score__pred": 0.5,
+          "completeness_score__gt": 1.0,
+          "completeness_score__deviation": -0.5,
+          "adherence_score__pred": 0.0,
+          "adherence_score__gt": 1.0,
+          "adherence_score__deviation": -1.0
+        },
+        {
+          "query": "Going public: do risk and choice explain differences in caesarean birth rates between public and private places of birth in Australia?",
+          "retrieved_documents": [
+            {
+              "text": "",
+              "title": "",
+              "content": "women who birthed in Queensland, Australia during a two-week period in 2009 were mailed a self-report survey approximately 3 months after birth. Seven hundred and fifty-seven women provided cross-sectional retrospective data on where they birthed (public or private facility), mode of birth (vaginal or caesarean) and risk factors, along with their preferences and freedom to choose their mode of birth. A hierarchical logistic regression was conducted to determine the extent to which maternal risk and freedom to choose one's mode of birth explain sector differences in the likelihood of having a caesarean birth.",
+              "metadata": {
+                "doc_id": "sample_16_doc_1",
+                "sample_index": 16,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 93,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "women who birth in private facilities in Australia are more likely to have a caesarean birth than women who birth in public facilities and these differences remain after accounting for sector differences in the demographic and health risk profiles of women. However, the extent to which women's preferences and/or freedom to choose their mode of birth further account for differences in the likelihood of caesarean birth between the sectors remains untested.",
+              "metadata": {
+                "doc_id": "sample_16_doc_0",
+                "sample_index": 16,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 71,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "while there was no sector difference in women's preference for mode of birth, women who birthed in private facilities had higher odds of feeling able to choose either a vaginal or caesarean birth, and feeling able to choose only a caesarean birth. Women had higher odds of having caesarean birth if they birthed in private facilities, even after accounting for significant risk factors such as age, body mass index, previous caesarean and use of assisted reproductive technology. However, there was no association between place of birth and odds of having a caesarean birth after also accounting for freedom to choose one's mode of birth.",
+              "metadata": {
+                "doc_id": "sample_16_doc_2",
+                "sample_index": 16,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 104,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "After controlling for underlying trend, episiotomy rates dropped by 1.4 percentage points after Hartman et al. publication (p<0.01 for spontaneous delivery; p<0.1 for operative delivery). The publication has smaller effect on government hospitals as compared to private hospitals. Mixed effects models estimated negative correlation between cross-time and cross-hospital variations in episiotomy rates, indicating reduced cross-hospital variation over time.",
+              "metadata": {
+                "doc_id": "sample_271_doc_3",
+                "sample_index": 271,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 58,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "To determine whether differences in medical risk factors account for the apparent Caesarean rate discrepancy between Medicaid and privately insured patients in Michigan, USA.",
+              "metadata": {
+                "doc_id": "sample_16_doc_3",
+                "sample_index": 16,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 24,
+                "title": ""
+              }
+            }
+          ],
+          "answer": "In Australia, women who birth in private facilities are more likely to have a caesarean birth than those in public facilities, even after accounting for demographic and health risk profiles. However, when freedom to choose one's mode of birth is also considered, there is no association between place of birth and odds of having a caesarean birth. Women who birthed in private facilities had higher odds of feeling able to choose their mode of birth, but there was no sector difference in women's preference for mode of birth. A study of 757 women in Queensland found that maternal risk and freedom to choose one's mode of birth explain sector differences in caesarean birth rates.",
+          "relevance_score__pred": 0.6154,
+          "relevance_score__gt": 0.7,
+          "relevance_score__deviation": -0.0846,
+          "utilization_score__pred": 0.3846,
+          "utilization_score__gt": 0.6,
+          "utilization_score__deviation": -0.2154,
+          "completeness_score__pred": 0.625,
+          "completeness_score__gt": 0.8571,
+          "completeness_score__deviation": -0.2321,
+          "adherence_score__pred": 0.0,
+          "adherence_score__gt": 1.0,
+          "adherence_score__deviation": -1.0
+        },
+        {
+          "query": "Are the statistical data from Benin's National Tuberculosis Programme reliable?",
+          "retrieved_documents": [
+            {
+              "text": "",
+              "title": "",
+              "content": "The National Tuberculosis Programme (NTP) of Benin, West Africa.",
+              "metadata": {
+                "doc_id": "sample_17_doc_0",
+                "sample_index": 17,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 9,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "National tuberculosis (TB) programmes need accurate estimates of the burden of TB in order to assess case detection, and progress towards the millennium development goals (MDGs). We reviewed nationwide epidemiological data on TB burden in Bangladesh to decide whether additional information is needed, in order to assess the current burden of TB.",
+              "metadata": {
+                "doc_id": "sample_17_doc_4",
+                "sample_index": 17,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 52,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "We compared deaths from active tuberculosis in Statistics Norway with the National Tuberculosis Register (NTR) and cases found by autopsy in two Norwegian counties in 1977-1989. We also assessed the diagnostic classification and inclusion criteria for tuberculosis.",
+              "metadata": {
+                "doc_id": "sample_618_doc_2",
+                "sample_index": 618,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 37,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "In 2012 the incidence rate of tuberculosis in Poland was 19.6/100,000 but these was great variability between regions concerning notification rates (from 10.9/100,000 to 30.2/100,000). The aim of the study was to assess whether there are elements that might confirm that these differences are true. To answer this question, we compared the population of TB patients from regions with higher notification rates to the population of patients from regions with lower notifications rates. The data collected during three consecutive years were analysed. We selected for comparison the regions with the lowest and highest notification rates and those in which the notification rates for 3 years (2010-2012) were relatively stable.",
+              "metadata": {
+                "doc_id": "sample_618_doc_4",
+                "sample_index": 618,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 109,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "To evaluate the performance of the health services in identifying infectious pulmonary tuberculosis (PTB) cases in Burkina Faso.",
+              "metadata": {
+                "doc_id": "sample_17_doc_1",
+                "sample_index": 17,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 18,
+                "title": ""
+              }
+            }
+          ],
+          "answer": "The passages do not provide sufficient information to answer this question. There is only a mention of the National Tuberculosis Programme (NTP) of Benin, West Africa, in Document 1, but no details or findings are provided about the reliability of its statistical data.",
+          "relevance_score__pred": 0.0909,
+          "relevance_score__gt": 0.1667,
+          "relevance_score__deviation": -0.0758,
+          "utilization_score__pred": 0.0909,
+          "utilization_score__gt": 1.0,
+          "utilization_score__deviation": -0.9091,
+          "completeness_score__pred": 1.0,
+          "completeness_score__gt": 1.0,
+          "completeness_score__deviation": 0.0,
+          "adherence_score__pred": 1.0,
+          "adherence_score__gt": 1.0,
+          "adherence_score__deviation": 0.0
+        },
+        {
+          "query": "Association of chronic diseases and impairments with disability in older adults: a decade of change?",
+          "retrieved_documents": [
+            {
+              "text": "",
+              "title": "",
+              "content": "To examine how the associations of chronic disease and impairment with specific disability have changed over time.",
+              "metadata": {
+                "doc_id": "sample_18_doc_1",
+                "sample_index": 18,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 17,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Little is known about how the relationship between chronic disease, impairment, and disability has changed over time among older adults.",
+              "metadata": {
+                "doc_id": "sample_18_doc_0",
+                "sample_index": 18,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 20,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "We recruited 436 people aged 65 years and over (mean 70.4 years (SD = 3.9)) with functional limitations from the Multicenter Osteoarthritis Study (MOST). Features of the neighborhood environment were assessed using the Home and Community Environment (HACE) survey. The Late-Life Disability Instrument (LLDI) was used to assess disability in daily activities. We used logistic regression to examine the association of individual environmental features with disability. RESULTS. Older adults whose neighborhoods did not have parks and walking areas less frequently engaged in a regular fitness program (OR = 0.4, 95% CI (0.2, 0.7)), and in social activities (OR = 0.5, 95% CI (0.3, 1.0)). Those whose neighborhoods had adequate handicap parking had 1.5-1.8 higher odds of engagement in several social and work role activities. The presence of public transportation was associated with 1.5-2.9 higher odds of not feeling limited in social, leisure, and work role activities, and instrumental activities of daily living.",
+              "metadata": {
+                "doc_id": "sample_704_doc_3",
+                "sample_index": 704,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 152,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "In the last decade, there has been increasing interest in the health effects of sedentary behavior, which is often assessed using self-report sitting-time questions. The aim of this qualitative study was to document older adults' understanding of sitting-time questions from the International Physical Activity (PA) Questionnaire (IPAQ) and the PA Scale for the Elderly (PASE).",
+              "metadata": {
+                "doc_id": "sample_95_doc_0",
+                "sample_index": 95,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 55,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Leisure-time physical activity (PA) has been established to be related to more years lived without disability. However, less is known about the relationship between occupational PA and disability in old age. The aim of the study was 1) to investigate whether midlife occupational PA is related to late-life disability, and 2) to test the hypothesis that the association differs according to the occupational categories of blue and white collar work.",
+              "metadata": {
+                "doc_id": "sample_704_doc_4",
+                "sample_index": 704,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 70,
+                "title": ""
+              }
+            }
+          ],
+          "answer": "The passages do not provide sufficient information to answer this question. While Documents 1 and 2 mention the association of chronic disease and impairment with disability over time, they do not provide specific details or findings. Document 3 discusses the association of neighborhood environment features with disability in daily activities among older adults, but does not address chronic diseases or impairments. Documents 4 and 5 focus on physical activity and its relationship to disability, but do not provide information on the change in association of chronic diseases and impairments with disability over the past decade.",
+          "relevance_score__pred": 0.7857,
+          "relevance_score__gt": 0.6667,
+          "relevance_score__deviation": 0.119,
+          "utilization_score__pred": 0.3571,
+          "utilization_score__gt": 0.3333,
+          "utilization_score__deviation": 0.0238,
+          "completeness_score__pred": 0.4545,
+          "completeness_score__gt": 0.5,
+          "completeness_score__deviation": -0.0455,
+          "adherence_score__pred": 0.0,
+          "adherence_score__gt": 1.0,
+          "adherence_score__deviation": -1.0
+        },
+        {
+          "query": "Can metabolic disorders in aging men contribute to prostatic hyperplasia eligible for transurethral resection of the prostate (TURP)?",
+          "retrieved_documents": [
+            {
+              "text": "",
+              "title": "",
+              "content": "The aim of this study was to evaluate the incidence and severity of metabolic disorders occurring in the metabolic syndrome in patients with benign prostatic hyperplasia eligible for surgical treatment.",
+              "metadata": {
+                "doc_id": "sample_19_doc_0",
+                "sample_index": 19,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 30,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Theoretical considerations have raised the suspicion that transurethral resection of the prostate (TURP) may increase the risk of developing prostate cancer in clinically benign prostate glands. Previous studies have not shown an increased risk among men who had undergone TURP for benign prostatic hyperplasia compared with the risk in age-matched control subjects. However, in all of these studies, all men with stage T1 prostate cancer in the TURP-group were excluded, possibly creating a bias, because no similar exclusion could be made for the controls.",
+              "metadata": {
+                "doc_id": "sample_19_doc_1",
+                "sample_index": 19,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 84,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Patients presenting in urinary retention secondary to prostatic obstruction are offered transurethral resection of the prostate (TURP) to free them from long-term catheterization. Short-term success is well understood, but there is scarce data about effect of age on outcome, quality of life and catheter-free rates.",
+              "metadata": {
+                "doc_id": "sample_19_doc_4",
+                "sample_index": 19,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 45,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "Patients with benign prostatic hyperplasia (BPH) suffering from hypocontractile detrusor were generally regarded unsuitable for surgery. This prospective study is to evaluate the efficacy of transurethral resection of the prostate (TURP) on BPH patients diagnosed detrusor hypocontractility on urodynamic study (UDs).",
+              "metadata": {
+                "doc_id": "sample_19_doc_2",
+                "sample_index": 19,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 41,
+                "title": ""
+              }
+            },
+            {
+              "text": "",
+              "title": "",
+              "content": "We aimed to describe, in a daily clinical practice setting, the demographic and comorbidity profile of patients with lower urinary tract symptoms suggestive of benign prostatic hyperplasia (BPH-LUTS), to compare the characteristics of patients receiving 5-alpha-reductase inhibitors (5-ARIs) with those not receiving them and to investigate predictors of 5-ARI prescription.",
+              "metadata": {
+                "doc_id": "sample_198_doc_1",
+                "sample_index": 198,
+                "source": "ragbench",
+                "parser_type": "noop",
+                "chunk_type": "sentence_based",
+                "word_count": 50,
+                "title": ""
+              }
+            }
+          ],
+          "answer": "The passages do not provide direct evidence that metabolic disorders in aging men contribute to prostatic hyperplasia eligible for TURP. However, Document 1 mentions that the study aimed to evaluate the incidence and severity of metabolic disorders in patients with benign prostatic hyperplasia eligible for surgical treatment, suggesting a potential link between metabolic disorders and prostatic hyperplasia. Additionally, Document 5 discusses the demographic and comorbidity profile of patients with BPH-LUTS, which may include metabolic disorders, but does not specifically address their contribution to prostatic hyperplasia. More information is needed to determine the relationship between metabolic disorders and prostatic hyperplasia eligible for TURP.",
+          "relevance_score__pred": 1.0,
+          "relevance_score__gt": 0.1111,
+          "relevance_score__deviation": 0.8889,
+          "utilization_score__pred": 0.1111,
+          "utilization_score__gt": 0.1111,
+          "utilization_score__deviation": -0.0,
+          "completeness_score__pred": 0.1111,
+          "completeness_score__gt": 1.0,
+          "completeness_score__deviation": -0.8889,
+          "adherence_score__pred": 0.0,
+          "adherence_score__gt": 0.0,
+          "adherence_score__deviation": 0.0
+        }
+      ],
+      "summary": [
+        {
+          "metric": "relevance_score",
+          "mean_score": 0.5898,
+          "mean_ground_truth": 0.4885,
+          "std_score": 0.2137,
+          "std_ground_truth": 0.2032,
+          "mean_abs_error": 0.1904
+        },
+        {
+          "metric": "utilization_score",
+          "mean_score": 0.297,
+          "mean_ground_truth": 0.3699,
+          "std_score": 0.1402,
+          "std_ground_truth": 0.2343,
+          "mean_abs_error": 0.1718
+        },
+        {
+          "metric": "completeness_score",
+          "mean_score": 0.533,
+          "mean_ground_truth": 0.6849,
+          "std_score": 0.2419,
+          "std_ground_truth": 0.2407,
+          "mean_abs_error": 0.2647
+        },
+        {
+          "metric": "adherence_score",
+          "mean_score": 0.2,
+          "mean_ground_truth": 0.85,
+          "std_score": 0.4,
+          "std_ground_truth": 0.3571,
+          "mean_abs_error": 0.65
+        }
+      ]
+    }
+  ]
+}

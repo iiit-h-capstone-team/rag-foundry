@@ -12,3 +12,4 @@ class SentenceTransformerEmbeddingConfig(BaseEmbeddingConfig):
     model_name: Optional[str] = None
     model: Optional[str] = None
     dimension: int = 768
+    query_instruction: Optional[str] = None

@@ -1,0 +1,57 @@
+config_dir: rag-experiments/pubmedqa-experiment/config
+
+report_dir: rag-experiments/pubmedqa-experiment/reports
+
+# Cache configuration (applied to all RAG configs unless overridden in their YAML)
+# If not specified, defaults to: enabled: true, cache_dir: ./cache
+cache:
+  enabled: true
+  cache_dir: ./cache
+
+# Directory for storing partial runs (JSONL files with query results)
+# Each config's results are saved as: temp_dir/<config_name>.jsonl
+# This allows resuming interrupted experiments
+temp_dir: rag-experiments/pubmedqa-experiment/temp
+
+# Query range configuration
+start_index: 0
+end_index: 20
+
+# Parallel execution configuration
+parallel: false
+max_workers: 1
+query_workers: 2
+
+# Evaluation configuration (shared across all configs)
+evaluation:
+  type: trace
+  provider: groq
+  config:
+    model: llama-3.3-70b-versatile
+    temperature: 0.0
+    max_tokens: 2000
+
+# Data loading configuration
+data_loader:
+  type: huggingface
+  config:
+    dataset_name: galileo-ai/ragbench
+    subset: pubmedqa
+    split: test
+    limit: 2450
+
+# Data parser configuration
+# PubMedQA data is raw text (no title/passage structure), so use noop parser
+# which passes through documents as-is
+data_parser:
+  type: noop
+
+# Data processing pipeline
+data_processing:
+  steps:
+    - type: deduplication
+      config:
+        strategy: content_hash
+
+# Report configuration
+report_strategy: detailed_query
